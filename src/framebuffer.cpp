@@ -60,6 +60,13 @@ public:
                         exit(1);
                 }
 
+                glBindRenderbuffer(GL_RENDERBUFFER, depthrenderbuffer);
+                glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT,
+                                      resolution.first, resolution.second);
+                glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+                                          GL_RENDERBUFFER, depthrenderbuffer);
+                glBindRenderbuffer(GL_RENDERBUFFER, 0);
+
 
                 glBindFramebuffer(GL_FRAMEBUFFER, 0);
         }
@@ -68,6 +75,7 @@ public:
         {
                 glDeleteFramebuffers(1, &id);
                 glDeleteTextures(1, &textureid);
+                glDeleteRenderbuffers(1, &depthrenderbuffer);
         }
 
         TextureImpl* asTexture()
