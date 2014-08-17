@@ -53,6 +53,7 @@ private:
 
 class WithFramebufferScope
 {
+        ENFORCE_ID_OBJECT(WithFramebufferScope);
 public:
         WithFramebufferScope(Framebuffer& fb) : framebuffer(fb)
         {
@@ -64,10 +65,5 @@ public:
                 framebuffer.off();
         }
 private:
-        WithFramebufferScope(WithFramebufferScope&) = delete;
-        WithFramebufferScope(WithFramebufferScope&&) = delete;
-        WithFramebufferScope& operator=(WithFramebufferScope&) = delete;
-        WithFramebufferScope& operator=(WithFramebufferScope&&) = delete;
-
         Framebuffer& framebuffer;
 };

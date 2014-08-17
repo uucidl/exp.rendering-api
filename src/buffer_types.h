@@ -1,5 +1,7 @@
 #pragma once
 
+#include "objects.hh"
+
 #include <GL/glew.h>
 
 class Buffer
@@ -81,6 +83,7 @@ private:
 //! only one such scope allowed at a time
 class WithVertexArrayScope
 {
+        ENFORCE_ID_OBJECT(WithVertexArrayScope);
 public:
         WithVertexArrayScope(VertexArray const& va)
         {
@@ -91,17 +94,12 @@ public:
         {
                 glBindVertexArray(0);
         }
-
-private:
-        WithVertexArrayScope(WithVertexArrayScope const&) = delete;
-        WithVertexArrayScope(WithVertexArrayScope&&) = delete;
-        WithVertexArrayScope& operator=(WithVertexArrayScope const&) = delete;
-        WithVertexArrayScope& operator=(WithVertexArrayScope&&) = delete;
 };
 
 //! only one such scope allowed at a time
 class WithArrayBufferScope
 {
+        ENFORCE_ID_OBJECT(WithArrayBufferScope);
 public:
         WithArrayBufferScope(Buffer const& buffer)
         {
@@ -112,16 +110,12 @@ public:
         {
                 glBindBuffer(GL_ARRAY_BUFFER, 0);
         }
-private:
-        WithArrayBufferScope(WithArrayBufferScope const&) = delete;
-        WithArrayBufferScope(WithArrayBufferScope&&) = delete;
-        WithArrayBufferScope& operator=(WithArrayBufferScope const&) = delete;
-        WithArrayBufferScope& operator=(WithArrayBufferScope&&) = delete;
 };
 
 //! only one such scope allowed at a time
 class WithElementArrayBufferScope
 {
+        ENFORCE_ID_OBJECT(WithElementArrayBufferScope);
 public:
         WithElementArrayBufferScope(Buffer const& buffer)
         {
@@ -132,11 +126,4 @@ public:
         {
                 glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
         }
-private:
-        WithElementArrayBufferScope(WithElementArrayBufferScope const&) = delete;
-        WithElementArrayBufferScope(WithElementArrayBufferScope&&) = delete;
-        WithElementArrayBufferScope& operator=(WithElementArrayBufferScope const&) =
-                delete;
-        WithElementArrayBufferScope& operator=(WithElementArrayBufferScope
-                                               &&) = delete;
 };

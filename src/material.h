@@ -1,5 +1,7 @@
 #pragma once
 
+#include "objects.hh"
+
 class MaterialImpl;
 
 enum MATERIAL_FLAGS {
@@ -21,6 +23,7 @@ void material_off(MaterialImpl* material);
 
 class Material
 {
+        ENFORCE_ID_OBJECT(Material);
 public:
 
         Material() : impl(material_make()) {}
@@ -41,17 +44,12 @@ public:
         }
 
 private:
-        Material(Material&) = delete;
-        Material(Material&&) = delete;
-        Material& operator= (Material&) = delete;
-        Material& operator= (Material&&) = delete;
-
-
         std::unique_ptr<MaterialImpl, void (*)(MaterialImpl*)> impl;
 };
 
 class WithMaterialOn
 {
+        ENFORCE_ID_OBJECT(WithMaterialOn);
 public:
         explicit WithMaterialOn(Material const& material)
         {
@@ -65,10 +63,5 @@ public:
         }
 
 private:
-        WithMaterialOn(WithMaterialOn&) = delete;
-        WithMaterialOn(WithMaterialOn&&) = delete;
-        WithMaterialOn& operator= (WithMaterialOn&) = delete;
-        WithMaterialOn& operator= (WithMaterialOn&&) = delete;
-
         Material const* current;
 };

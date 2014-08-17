@@ -1,3 +1,5 @@
+#include "objects.hh"
+
 class MeshImpl;
 class DisplayFrameImpl;
 class ShaderProgram;
@@ -12,6 +14,7 @@ void mesh_draw(MeshImpl* self);
 
 class Mesh
 {
+        ENFORCE_ID_OBJECT(Mesh);
 public:
         Mesh() : impl(mesh_make()) {}
 
