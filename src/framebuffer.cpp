@@ -1,26 +1,37 @@
 #include "framebuffer.h"
 
-void framebuffer_destroy(FramebufferImpl* self)
+class Framebuffer::Impl
 {
+public:
+        Impl() {}
+        ~Impl() {}
+
+        TextureImpl* asTexture()
+        {
+                return nullptr;
+        }
+
+        void on()
+        {}
+
+        void off()
+        {}
+};
+
+Framebuffer::Framebuffer() = default;
+Framebuffer::~Framebuffer() = default;
+
+TextureImpl* Framebuffer::asTexture() const
+{
+        return impl->asTexture();
 }
 
-std::unique_ptr<FramebufferImpl, void (*)(FramebufferImpl*)>
-framebuffer_make()
+void Framebuffer::on() const
 {
-        return { nullptr, framebuffer_destroy };
+        impl->on();
 }
 
-/**
- * Obtains the last framebuffer's frame as a texture.
- * @relatesalso framebuffer_t
- */
-TextureImpl* framebuffer_as_texture (FramebufferImpl* self)
+void Framebuffer::off() const
 {
-        return nullptr;
+        impl->off();
 }
-
-void framebuffer_activate(FramebufferImpl* self)
-{}
-
-void framebuffer_deactivate(FramebufferImpl* self)
-{}

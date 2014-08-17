@@ -1,5 +1,7 @@
 #pragma once
 
+#include "objects.hh"
+
 // 1. forward declarations
 class FramebufferImpl;
 typedef class FramebufferImpl* framebuffer_t;
@@ -31,31 +33,22 @@ void framebuffer_deactivate(FramebufferImpl* self);
 
 class Framebuffer
 {
+        ENFORCE_ID_OBJECT(Framebuffer);
+
 public:
-        Framebuffer() : impl(framebuffer_make()) {}
+        Framebuffer();
+        virtual ~Framebuffer();
 
-        TextureImpl* asTexture () const
-        {
-                return framebuffer_as_texture(impl.get());
-        }
-
-        void on() const
-        {
-                return framebuffer_activate(impl.get());
-        }
-
-        void off() const
-        {
-                return framebuffer_deactivate(impl.get());
-        }
+        /**
+         * Obtains the last framebuffer's frame as a texture.
+         */
+        TextureImpl* asTexture () const;
+        void on() const;
+        void off() const;
 
 private:
-        Framebuffer(Framebuffer&) = delete;
-        Framebuffer(Framebuffer&&) = delete;
-        Framebuffer& operator=(Framebuffer&) = delete;
-        Framebuffer& operator=(Framebuffer&&) = delete;
-
-        std::unique_ptr<FramebufferImpl, void (*)(FramebufferImpl*)> impl;
+        class Impl;
+        std::unique_ptr<Impl> impl;
 };
 
 class WithFramebufferScope
