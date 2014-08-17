@@ -19,18 +19,6 @@ typedef class DisplayDeviceImpl* display_device_t;
 
 #include <memory>
 
-std::unique_ptr<FramebufferImpl, void (*)(FramebufferImpl*)>
-framebuffer_make();
-
-/**
- * Obtains the last framebuffer's frame as a texture.
- * @relatesalso framebuffer_t
- */
-TextureImpl* framebuffer_as_texture (FramebufferImpl* self);
-
-void framebuffer_activate(FramebufferImpl* self);
-void framebuffer_deactivate(FramebufferImpl* self);
-
 class Framebuffer
 {
         ENFORCE_ID_OBJECT(Framebuffer);
