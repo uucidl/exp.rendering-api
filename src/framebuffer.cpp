@@ -4,25 +4,12 @@
 
 #include <cstdlib>
 
-static int nextPowerOfTwo(int n, int start=1)
-{
-        auto i = start;
-
-        while(i < n) {
-                i *= 2;
-        }
-
-        return i;
-}
-
 std::pair<int, int> framebufferResolution()
 {
         GLint wh[4];
         glGetIntegerv(GL_VIEWPORT, wh);
 
-        return { nextPowerOfTwo(wh[2], 256),
-                 nextPowerOfTwo(wh[3], 256)
-               };
+        return { wh[2], wh[3] };
 }
 
 class Framebuffer::Impl
