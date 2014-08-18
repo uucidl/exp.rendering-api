@@ -124,13 +124,17 @@ extern void render_next_gl3(uint64_t time_micros)
                 &resources.framebuffers[1],
                 &resources.framebuffers[2],
         };
-        razors(&frame, time_micros / 1e3, resources.classyWhite, framebuffers, 1.0,
-               0.0, 0.0, 1, resources.classyWhite);
+        razors(&frame, time_micros / 1e3,
+               resources.classyWhite, resources.mainShader,
+               framebuffers, 1.0, 0.0, 0.0, sincos[0] > 0.9 ? 1 : 0,
+               resources.classyWhite);
 
+        /*
         Mesh mesh;
         mesh.defQuad2d(0, -0.5, -0.7, 1.0, 1.4, 0.0, 0.0, 1.0, 1.0);
         mesh.bind(resources.mainShader);
         mesh.draw();
+        */
 
         glMatrixMode (GL_PROJECTION);
         glPopMatrix();

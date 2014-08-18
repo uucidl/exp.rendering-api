@@ -66,6 +66,7 @@ static void movev(float f)
         } while (0)
 
 static void rdq (display_frame_t frame,
+                 ShaderProgram const& shader,
                  Framebuffer * const feedback[],
                  float const cut,
                  int const clear_p,
@@ -91,12 +92,14 @@ static void rdq (display_frame_t frame,
                 glClear (GL_COLOR_BUFFER_BIT);
         }
 
+        quad.bind(shader);
         quad.draw();
 }
 
 void razors(display_frame_t frame,
             double const ms,
             Material const& mat,
+            ShaderProgram const& shader,
             Framebuffer* feedbacks[3],
             float const amplitude,
             float const rot,
@@ -118,7 +121,7 @@ void razors(display_frame_t frame,
                                 + 0.01f*aa));
                                 rotx(1.0f / 96.0f * (1.f + 0.1f*sin(phase/7.0 * TAU/3.f)));
                                 rotz(1.0f / 4.0f * sin(phase * TAU / 33.33f));
-                                rdq (frame, feedbacks, 1.0f, 1, 0);
+                                rdq (frame, shader, feedbacks, 1.0f, 1, 0);
                         }));
                 }
 
@@ -128,7 +131,7 @@ void razors(display_frame_t frame,
                                 moveh(0.005*sin(phase/500.f));
                                 scale1(1.0f*(1.0f + 0.07f*cos(phase*TAU)));
                                 rotx(1.0f / 6.0f * (1.f + 0.005f * rot));
-                                rdq (frame, feedbacks, 1.0f, 1, 0);
+                                rdq (frame, shader, feedbacks, 1.0f, 1, 0);
                         }));
                 }
         }
@@ -138,7 +141,7 @@ void razors(display_frame_t frame,
                 NF(({
                         {
                                 WithMaterialOn material(mat);
-                                rdq (frame, feedbacks, 1.0f, 0, 0);
+                                rdq (frame, shader, feedbacks, 1.0f, 0, 0);
                         }
 
                         {
@@ -152,6 +155,8 @@ void razors(display_frame_t frame,
 
                                 {
                                         WithMaterialOn material(blacken);
+                                        quad.bind(shader);
+
                                         quad.draw();
                                 }
                         }
@@ -161,11 +166,11 @@ void razors(display_frame_t frame,
                         WithMaterialOn material(mat);
                         NF(({
                                 rotz(1./4.*(1.f + 0.71f * rot)*cos(phase/10.0f)*cos(phase/10.0f)*(1.f + 0.01f * aa));
-                                rdq (frame, feedbacks, 1.0f, 0, 1);
+                                rdq (frame, shader, feedbacks, 1.0f, 0, 1);
                         }));
 
                         NF(({
-                                rdq (frame, feedbacks, 1.0f, 0, 2);
+                                rdq (frame, shader, feedbacks, 1.0f, 0, 2);
                         }));
                 }
                 if (seed_p) {
@@ -177,6 +182,7 @@ void razors(display_frame_t frame,
                                 quad.defQuad2d(0, -1.0f, 1.0f, 2.0f, -2.0f,
                                                0.0f, 0.0f, uv[0], uv[1]);
 
+                                quad.bind(shader);
                                 quad.draw();
                         }));
                 }
@@ -184,7 +190,7 @@ void razors(display_frame_t frame,
 
         {
                 WithMaterialOn material(mat);
-                rdq (frame, feedbacks, 1.0f, 1, 0);
+                rdq (frame, shader, feedbacks, 1.0f, 1, 0);
         }
 
 }

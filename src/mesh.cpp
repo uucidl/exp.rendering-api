@@ -68,7 +68,7 @@ void mesh_defquad2d (MeshImpl* g, int flags,
 
 }
 
-void mesh_bind(MeshImpl* self, ShaderProgram& shader)
+void mesh_bind(MeshImpl* self, ShaderProgram const& shader)
 {
         self->programRef = shader.ref();
 

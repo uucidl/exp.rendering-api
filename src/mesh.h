@@ -9,7 +9,7 @@ class ShaderProgram;
 std::unique_ptr<MeshImpl, void (*)(MeshImpl*)> mesh_make();
 void mesh_defquad2d (MeshImpl* g, int flags, float x, float y, float w,
                      float h, float umin, float vmin, float umax, float vmax);
-void mesh_bind(MeshImpl* self, ShaderProgram& program);
+void mesh_bind(MeshImpl* self, ShaderProgram const& program);
 void mesh_draw(MeshImpl* self);
 
 class Mesh
@@ -24,7 +24,7 @@ public:
                 mesh_defquad2d(impl.get(), flags, x, y, w, h, umin, vmin, umax, vmax);
         }
 
-        void bind(ShaderProgram& program)
+        void bind(ShaderProgram const& program)
         {
                 mesh_bind(impl.get(), program);
         }
