@@ -83,10 +83,20 @@ public:
         }
 
         void on()
-        {}
+        {
+                glBindFramebuffer(GL_FRAMEBUFFER, id);
+                glDrawBuffer (GL_COLOR_ATTACHMENT0);
+                glReadBuffer (GL_COLOR_ATTACHMENT0);
+                glPushAttrib (GL_VIEWPORT_BIT | GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        }
 
         void off()
-        {}
+        {
+                glPopAttrib();
+                glBindFramebuffer(GL_FRAMEBUFFER, 0);
+                glReadBuffer (GL_BACK);
+                glDrawBuffer (GL_BACK);
+        }
 
         GLuint id;
         Texture texture;
