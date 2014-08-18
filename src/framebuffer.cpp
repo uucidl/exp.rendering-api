@@ -1,4 +1,5 @@
 #include "framebuffer.h"
+#include "texture_types.h"
 
 #include <GL/glew.h>
 
@@ -24,8 +25,7 @@ public:
                 glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
                 auto resolution = framebufferResolution();
-                glGenTextures(1, &textureid);
-                glBindTexture(GL_TEXTURE_2D, textureid);
+                glBindTexture(GL_TEXTURE_2D, texture.ref);
                 glTexImage2D(GL_TEXTURE_2D,
                              0,
                              GL_RGBA,
@@ -43,7 +43,7 @@ public:
                 glFramebufferTexture2D(GL_FRAMEBUFFER,
                                        GL_COLOR_ATTACHMENT0,
                                        GL_TEXTURE_2D,
-                                       textureid,
+                                       texture.ref,
                                        0);
                 glGenRenderbuffers(1, &depthrenderbuffer);
 
@@ -74,13 +74,12 @@ public:
         ~Impl()
         {
                 glDeleteFramebuffers(1, &id);
-                glDeleteTextures(1, &textureid);
                 glDeleteRenderbuffers(1, &depthrenderbuffer);
         }
 
-        TextureImpl* asTexture()
+        Texture const& asTexture()
         {
-                return nullptr;
+                return texture;
         }
 
         void on()
@@ -90,7 +89,7 @@ public:
         {}
 
         GLuint id;
-        GLuint textureid;
+        Texture texture;
         GLuint depthrenderbuffer;
 };
 
@@ -99,7 +98,7 @@ Framebuffer::Framebuffer() : impl(new Framebuffer::Impl())
 
 Framebuffer::~Framebuffer() = default;
 
-TextureImpl* Framebuffer::asTexture() const
+Texture const& Framebuffer::asTexture() const
 {
         return impl->asTexture();
 }

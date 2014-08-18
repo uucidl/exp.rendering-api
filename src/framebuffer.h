@@ -3,11 +3,7 @@
 #include "objects.hh"
 
 // 1. forward declarations
-class FramebufferImpl;
-typedef class FramebufferImpl* framebuffer_t;
-
-class TextureImpl;
-typedef class TextureImpl* texture_t;
+class Texture;
 
 class DisplayFrameImpl;
 typedef class DisplayFrameImpl* display_frame_t;
@@ -30,7 +26,7 @@ public:
         /**
          * Obtains the last framebuffer's frame as a texture.
          */
-        TextureImpl* asTexture () const;
+        Texture const& asTexture () const;
         void on() const;
         void off() const;
 

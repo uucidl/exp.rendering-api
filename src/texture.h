@@ -1,7 +1,14 @@
 #pragma once
 
-class TextureImpl;
+#include "objects.hh"
 
-void texture_uv(TextureImpl* texture, float uv[2]);
-void texture_on(TextureImpl* texture);
-void texture_off(TextureImpl* texture);
+class Texture;
+
+class WithTexture2DBoundScope
+{
+        ENFORCE_ID_OBJECT(WithTexture2DBoundScope);
+public:
+        WithTexture2DBoundScope(Texture const& texture);
+        ~WithTexture2DBoundScope();
+};
+

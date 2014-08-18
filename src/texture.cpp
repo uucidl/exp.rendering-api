@@ -1,10 +1,16 @@
 #include "texture.h"
+#include "texture_types.h"
 
-void texture_uv(TextureImpl* texture, float uv[2])
-{}
+#include <GL/glew.h>
 
-void texture_on(TextureImpl* texture)
-{}
+/// bind texture
 
-void texture_off(TextureImpl* texture)
-{}
+WithTexture2DBoundScope::WithTexture2DBoundScope(Texture const& texture)
+{
+        glBindTexture(GL_TEXTURE_2D, texture.ref);
+}
+
+WithTexture2DBoundScope::~WithTexture2DBoundScope()
+{
+        glBindTexture(GL_TEXTURE_2D, 0);
+}

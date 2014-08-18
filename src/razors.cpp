@@ -75,7 +75,6 @@ static void rdq (display_frame_t frame,
                 1.0f,
                 1.0f,
         };
-        texture_uv(feedback[input]->asTexture(), uv);
 
         Mesh quad;
 
@@ -86,15 +85,13 @@ static void rdq (display_frame_t frame,
                        -2.0f + border,
                        uv[0]*hborder, uv[1]*hborder, uv[0]*(1.0f - hborder), uv[1]*(1.0f - hborder));
 
-        texture_on (feedback[input]->asTexture());
-
+        WithTexture2DBoundScope(feedback[input]->asTexture());
         if (clear_p) {
                 glClearColor (0.0f, 0.0f, 0.0f, 0.0f);
                 glClear (GL_COLOR_BUFFER_BIT);
         }
 
         quad.draw();
-        texture_off (feedback[input]->asTexture());
 }
 
 void razors(display_frame_t frame,
