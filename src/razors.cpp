@@ -50,18 +50,7 @@ static void movev(float f)
 #define NF(block) do {						\
                 glPushAttrib(GL_SCISSOR_BIT);			\
                 glDisable(GL_SCISSOR_TEST);			\
-                glMatrixMode(GL_PROJECTION);			\
-                glPushMatrix();					\
-                glLoadIdentity();				\
-                glOrtho(-1.0, 1.0, -1.0, +1.0, +1.0, -1.0);	\
-                glMatrixMode(GL_MODELVIEW);			\
-                glPushMatrix();					\
-                glLoadIdentity();				\
                 block;						\
-                glMatrixMode(GL_MODELVIEW);			\
-                glPopMatrix();					\
-                glMatrixMode(GL_PROJECTION);			\
-                glPopMatrix();					\
                 glPopAttrib();					\
         } while (0)
 
