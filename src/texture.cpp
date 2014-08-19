@@ -7,6 +7,7 @@
 
 WithTexture2DBoundScope::WithTexture2DBoundScope(Texture const& texture)
 {
+        glActiveTexture(GL_TEXTURE0 + 0);
         glBindTexture(GL_TEXTURE_2D, texture.ref);
 }
 
