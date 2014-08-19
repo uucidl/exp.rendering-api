@@ -19,4 +19,5 @@ void razors(display_frame_t frame,
             float rot,
             float blackf,
             int seed_p,
-            Material const& seedmat);
+            Material const& seedmat,
+            ShaderProgram const& seedshader);

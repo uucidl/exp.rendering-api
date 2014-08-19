@@ -75,7 +75,7 @@ static void rdq (display_frame_t frame,
                        -2.0f + border,
                        uv[0]*hborder, uv[1]*hborder, uv[0]*(1.0f - hborder), uv[1]*(1.0f - hborder));
 
-        WithTexture2DBoundScope(feedback[input]->asTexture());
+        WithTexture2DBoundScope bindTexture(feedback[input]->asTexture());
         if (clear_p) {
                 glClearColor (0.0f, 0.0f, 0.0f, 0.0f);
                 glClear (GL_COLOR_BUFFER_BIT);
@@ -94,7 +94,8 @@ void razors(display_frame_t frame,
             float const rot,
             float const blackf,
             int const seed_p,
-            Material const& seedmat)
+            Material const& seedmat,
+            ShaderProgram const& seedshader)
 {
         double const phase = ms / 1000.0f;
 
@@ -171,7 +172,7 @@ void razors(display_frame_t frame,
                                 quad.defQuad2d(0, -1.0f, 1.0f, 2.0f, -2.0f,
                                                0.0f, 0.0f, uv[0], uv[1]);
 
-                                quad.bind(shader);
+                                quad.bind(seedshader);
                                 quad.draw();
                         }));
                 }
