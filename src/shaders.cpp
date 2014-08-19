@@ -34,7 +34,9 @@ public:
 
         ~Program()
         {
-                glDeleteProgram(ref);
+                if (ref) {
+                        glDeleteProgram(ref);
+                }
                 ref = 0;
         }
 
@@ -69,7 +71,9 @@ public:
 
         ~Shader()
         {
-                glDeleteShader(ref);
+                if (ref) {
+                        glDeleteShader(ref);
+                }
                 ref = 0;
         }
 
@@ -207,7 +211,7 @@ GLuint ShaderProgram::ref() const
         return impl->program.ref;
 }
 
-ShaderProgram::ShaderProgram() : impl(new ShaderProgram::Impl()) {}
+ShaderProgram::ShaderProgram() : impl(new ShaderProgram::Impl(0)) {}
 ShaderProgram::~ShaderProgram() = default;
 ShaderProgram::ShaderProgram(ShaderProgram&& other) :
         impl(std::move(other.impl)) {}
