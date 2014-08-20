@@ -144,7 +144,12 @@ extern void render_next_gl3(uint64_t time_micros)
                                              GL_RGBA,
                                              GL_UNSIGNED_INT_8_8_8_8_REV,
                                              data);
-                                stbi_write_png("dump.png", width, height, 4, data, 0);
+#if EITHER_GENERATE_MIPMAP
+                                glGenerateMipmap(GL_TEXTURE_2D);
+#else
+                                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+#endif
                                 OGL_TRACE;
                                 glBindTexture(GL_TEXTURE_2D, 0);
                                 OGL_TRACE;
