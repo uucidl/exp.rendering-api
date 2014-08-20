@@ -2,10 +2,13 @@
 
 in vec4 position;
 in vec2 texcoord;
-out vec2 factor;
+
+uniform mat4x4 transform;
+
+smooth out vec2 ftexcoord;
 
 void main()
 {
-        gl_Position = position;
-        factor = texcoord;
+        gl_Position = transform * position;
+        ftexcoord = texcoord;
 }

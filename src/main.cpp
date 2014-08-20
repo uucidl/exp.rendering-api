@@ -5,10 +5,22 @@
 #include "material.h"
 #include "mesh.h"
 #include "shader_types.h"
+#include "texture.h"
+#include "texture_types.h"
 
 #include <micros/api.h>
 
 #include <GL/glew.h>
+#include "debug.h"
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wmissing-field-initializers"
+
+#define STB_PERLIN_IMPLEMENTATION
+#include "stb_perlin.h"
+#undef STB_PERLIN_IMPLEMENTATION
+
+#pragma clang diagnostic pop
 
 #include <math.h>
 #include <stdio.h> // for printf
@@ -77,32 +89,88 @@ extern void render_next_gl3(uint64_t time_micros)
         static struct Resources {
                 Resources() : shader_loader(tasks, srcFileSystem)
                 {
+                        OGL_TRACE;
                         classyWhite.commitWith(MF_NO_DEPTH_TEST | MF_BLEND | MF_TEXTURE_REPEAT,
                         (float[4]) {
                                 0.99997f, 1.0f, 1.0f, 1.0f
+                        });
+                        reddishWhite.commitWith(MF_NO_DEPTH_TEST | MF_BLEND | MF_TEXTURE_REPEAT,
+                        (float[4]) {
+                                0.99997f, 1.0f, 0.90f, 0.91f
                         });
                         brightWhite.commitWith(MF_NO_DEPTH_TEST | MF_BLEND | MF_TEXTURE_REPEAT,
                         (float[4]) {
                                 1.0f, 1.0f, 1.0f, 1.0f
                         });
 
-                        shader_loader.load_shader("main.vs", "main.fs", [=](ShaderProgram&& input) {
-                                mainShader = std::move(input);
+                        OGL_TRACE;
+
+                        shader_loader.load_shader("pink.vs", "pink.fs", [=](ShaderProgram&& input) {
+                                OGL_TRACE;
+                                pinkShader = std::move(input);
                         });
+                        shader_loader.load_shader("main.vs", "main.fs", [=](ShaderProgram&& input) {
+                                OGL_TRACE;
+                                mainShader = std::move(input);
+                                OGL_TRACE;
+                                WithShaderProgramScope withShader(mainShader);
+                                GLint texture1Loc = glGetUniformLocation(mainShader.ref(),
+                                                    "tex");
+
+
+                                glUniform1i(texture1Loc, 0); // bind to texture unit 0
+                                OGL_TRACE;
+                        });
+
+                        {
+                                int const width = 64;
+                                int const height = 64;
+                                OGL_TRACE;
+
+                                WithTexture2DBoundScope withTexture(noiseTexture);
+
+                                uint32_t data[width*height];
+                                for (int y = 0; y < height; y++) {
+                                        for (int x = 0; x < width; x++) {
+                                                float val = stb_perlin_noise3(1.0 * x / width, 1.0 * y / height, 0.0);
+                                                char const ival = 255 * val;
+                                                data[x + y*width] = (ival << 16) | (ival << 8) | ival;
+                                        }
+                                }
+                                OGL_TRACE;
+
+                                glTexImage2D(GL_TEXTURE_2D,
+                                             0,
+                                             GL_RGBA,
+                                             width,
+                                             height,
+                                             0,
+                                             GL_RGBA,
+                                             GL_UNSIGNED_INT_8_8_8_8_REV,
+                                             data);
+                                glGenerateMipmap(GL_TEXTURE_2D);
+
+                                OGL_TRACE;
+                        }
 
                 }
 
                 Material classyWhite;
                 Material brightWhite;
+                Material reddishWhite;
                 ShaderProgram mainShader;
+                ShaderProgram pinkShader;
                 ShaderLoader shader_loader;
                 GLuint position_attr;
                 Framebuffer framebuffers[3];
+                Texture noiseTexture;
         } resources;
 
+        OGL_TRACE;
         tasks.run();
+        OGL_TRACE;
 
-        double const phase = 6.30 * time_micros / 1e6 / 11.0;
+        double const phase = 6.30 * time_micros / 1e6 / 1.0;
         float sincos[2] = {
                 static_cast<float>(0.49 * sin(phase)),
                 static_cast<float>(0.49 * cos(phase)),
@@ -113,10 +181,8 @@ extern void render_next_gl3(uint64_t time_micros)
         glClearColor (argb[1], argb[2], argb[3], argb[0]);
         glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glMatrixMode (GL_PROJECTION);
-        glPushMatrix();
-        glLoadIdentity();
-        glOrtho(-1.0, 1.0, 1.0, -1.0, +1.0, -1.0);
+        OGL_TRACE;
+
 
         DisplayFrameImpl frame;
         Framebuffer* framebuffers[] = {
@@ -124,20 +190,11 @@ extern void render_next_gl3(uint64_t time_micros)
                 &resources.framebuffers[1],
                 &resources.framebuffers[2],
         };
-        razors(&frame, time_micros / 1e3,
+
+        razors(&frame, 1.0 * time_micros / 1.0e5,
                resources.classyWhite, resources.mainShader,
-               framebuffers, 1.0, 0.0, 0.0, sincos[0] > 0.9 ? 1 : 0,
-               resources.classyWhite);
-
-        /*
-        Mesh mesh;
-        mesh.defQuad2d(0, -0.5, -0.7, 1.0, 1.4, 0.0, 0.0, 1.0, 1.0);
-        mesh.bind(resources.mainShader);
-        mesh.draw();
-        */
-
-        glMatrixMode (GL_PROJECTION);
-        glPopMatrix();
+               framebuffers, 55.7, 7.0, 0.06, sincos[0] > 0.44 ? 1 : 0,
+               resources.brightWhite, resources.pinkShader);
 }
 
 int main (int argc, char** argv)

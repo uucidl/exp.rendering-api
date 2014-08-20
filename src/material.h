@@ -31,6 +31,10 @@ public:
         void commitWith(int flags, float argb[4])
         {
                 material_commit_with(impl.get(), flags, argb);
+                color[0] = argb[0];
+                color[1] = argb[1];
+                color[2] = argb[2];
+                color[3] = argb[3];
         }
 
         void on() const
@@ -43,6 +47,7 @@ public:
                 material_off(impl.get());
         }
 
+        float color[4];
 private:
         std::unique_ptr<MaterialImpl, void (*)(MaterialImpl*)> impl;
 };

@@ -1,57 +1,73 @@
 #include "razors.h"
+#include "matrix.hpp"
 
 #include "frame.h"
 #include "framebuffer.h"
 #include "material.h"
 #include "mesh.h"
+#include "shader_types.h"
 #include "texture.h"
 
 #include <GL/glew.h>
+
+#include "debug.h"
 
 #include <cmath>
 
 static const double TAU =
         6.28318530717958647692528676655900576839433879875021;
 
-/**
- * Clamp a floating point number between two boundaries.
- */
-static inline float clamp_f (float const f, float const min_b,
-                             float const max_b)
+static inline void scale1(matrix4& matrix, float f)
 {
-        return f < min_b ? min_b : (f > max_b ? max_b : f);
+        matrix4 t;
+        matrix4_identity(t);
+
+        t[0] *= -f;
+        t[5] *= f;
+
+        matrix4_mul(matrix, t);
 }
 
-static inline void scale1(float f)
+static inline void rotx(matrix4& matrix, float f)
 {
-        glScalef(-f, f, 1.0f);
+        vector4 axis;
+        vector4_make(axis, 1.0f, 0.0f, 0.0f, 0.0f);
+        vector4 quat;
+        quaternion_make_rotation(quat, 360.0f * f, axis);
+        matrix4 rotation;
+        matrix4_from_quaternion(rotation, quat);
+        matrix4_mul(matrix, rotation);
 }
 
-static inline void rotx(float f)
+static inline void rotz(matrix4& matrix, float f)
 {
-        glRotatef(360.0f * f, 1.0f, 0.0f, 0.0f);
+        vector4 axis;
+        vector4_make(axis, 0.0f, 0.0f, 1.0f, 0.0f);
+        vector4 quat;
+        quaternion_make_rotation(quat, 360.0f * f, axis);
+        matrix4 rotation;
+        matrix4_from_quaternion(rotation, quat);
+        matrix4_mul(matrix, rotation);
 }
 
-static inline void rotz(float f)
+static inline void moveh(matrix4& matrix, float f)
 {
-        glRotatef(360.0f * f, 0.0f, 0.0f, 1.0f);
+        matrix4 t;
+        matrix4_identity(t);
+        t[3*4 + 0] = f;
+        matrix4_mul(matrix, t);
 }
 
-static inline void moveh(float f)
+static void movev(matrix4& matrix, float f)
 {
-        glTranslatef(f, 0.0f, 0.f);
-}
-
-static void movev(float f)
-{
-        glTranslatef(0.0f, f, 0.f);
+        matrix4 t;
+        matrix4_identity(t);
+        t[3*4 + 1] = f;
+        matrix4_mul(matrix, t);
 }
 
 #define NF(block) do {						\
-                glPushAttrib(GL_SCISSOR_BIT);			\
-                glDisable(GL_SCISSOR_TEST);			\
                 block;						\
-                glPopAttrib();					\
         } while (0)
 
 static void rdq (display_frame_t frame,
@@ -61,6 +77,7 @@ static void rdq (display_frame_t frame,
                  int const clear_p,
                  int const input)
 {
+        OGL_TRACE;
         float uv[2] = {
                 1.0f,
                 1.0f,
@@ -83,6 +100,23 @@ static void rdq (display_frame_t frame,
 
         quad.bind(shader);
         quad.draw();
+        OGL_TRACE;
+}
+
+static void shaderSetTransform(ShaderProgram const& shader, GLint loc,
+                               matrix4 transform)
+{
+        WithShaderProgramScope withShader(shader);
+        glUniformMatrix4fv(loc, 1, GL_FALSE, transform);
+
+}
+
+static void shaderSetMaterial(ShaderProgram const& shader, GLint colorLoc,
+                              Material const& material)
+{
+        WithShaderProgramScope withShader(shader);
+        glUniform4f(colorLoc,
+                    material.color[1], material.color[2], material.color[3], material.color[0]);
 }
 
 void razors(display_frame_t frame,
@@ -97,7 +131,11 @@ void razors(display_frame_t frame,
             Material const& seedmat,
             ShaderProgram const& seedshader)
 {
+        OGL_TRACE;
         double const phase = ms / 1000.0f;
+
+        GLint transformLoc = glGetUniformLocation(shader.ref(), "transform");
+        GLint colorLoc = glGetUniformLocation(shader.ref(), "g_color");
 
         float aa = amplitude;
 
@@ -106,11 +144,16 @@ void razors(display_frame_t frame,
                 {
                         WithFramebufferScope subframe1(*feedbacks[1]);
                         NF(({
-                                movev(0.001f*cos(phase/50.0f));
-                                scale1(1.0f*(1.f + 0.001f*sin(phase*TAU + TAU/6.0f)
-                                + 0.01f*aa));
-                                rotx(1.0f / 96.0f * (1.f + 0.1f*sin(phase/7.0 * TAU/3.f)));
-                                rotz(1.0f / 4.0f * sin(phase * TAU / 33.33f));
+                                matrix4 m = {0};
+                                matrix4_identity(m);
+                                movev(m, 0.001f*cos(phase/50.0f));
+                                scale1(m, 1.0f*(1.f + 0.001f*sin(phase*TAU + TAU/6.0f)
+                                                + 0.01f*aa));
+                                rotx(m, 1.0f / 96.0f * (1.f + 0.1f*sin(phase/7.0 * TAU/3.f)));
+                                rotz(m, 1.0f / 4.0f * sin(phase * TAU / 33.33f));
+
+                                shaderSetMaterial(shader, colorLoc, mat);
+                                shaderSetTransform(shader, transformLoc, m);
                                 rdq (frame, shader, feedbacks, 1.0f, 1, 0);
                         }));
                 }
@@ -118,19 +161,28 @@ void razors(display_frame_t frame,
                 {
                         WithFramebufferScope subframe2(*feedbacks[2]);
                         NF(({
-                                moveh(0.005*sin(phase/500.f));
-                                scale1(1.0f*(1.0f + 0.07f*cos(phase*TAU)));
-                                rotx(1.0f / 6.0f * (1.f + 0.005f * rot));
+                                matrix4 m = {0};
+                                matrix4_identity(m);
+                                moveh(m, 0.005*sin(phase/500.f));
+                                scale1(m, 1.0f*(1.0f + 0.07f*cos(phase*TAU)));
+                                rotx(m, 1.0f / 6.0f * (1.f + 0.005f * rot));
+                                shaderSetMaterial(shader, colorLoc, mat);
+                                shaderSetTransform(shader, transformLoc, m);
                                 rdq (frame, shader, feedbacks, 1.0f, 1, 0);
                         }));
                 }
         }
+        OGL_TRACE;
 
         {
                 WithFramebufferScope subframe0(*feedbacks[0]);
                 NF(({
                         {
                                 WithMaterialOn material(mat);
+                                matrix4 m = {0};
+                                matrix4_identity(m);
+                                shaderSetMaterial(shader, colorLoc, mat);
+                                shaderSetTransform(shader, transformLoc, m);
                                 rdq (frame, shader, feedbacks, 1.0f, 0, 0);
                         }
 
@@ -155,16 +207,28 @@ void razors(display_frame_t frame,
                 {
                         WithMaterialOn material(mat);
                         NF(({
-                                rotz(1./4.*(1.f + 0.71f * rot)*cos(phase/10.0f)*cos(phase/10.0f)*(1.f + 0.01f * aa));
+                                matrix4 m = {0};
+                                matrix4_identity(m);
+                                rotz(m, 1./4.*(1.f + 0.71f * rot)*cos(phase/10.0f)*cos(phase/10.0f)*(1.f + 0.01f * aa));
+                                shaderSetMaterial(shader, colorLoc, mat);
+                                shaderSetTransform(shader, transformLoc, m);
                                 rdq (frame, shader, feedbacks, 1.0f, 0, 1);
                         }));
 
                         NF(({
+                                matrix4 m = {0};
+                                matrix4_identity(m);
+                                shaderSetTransform(shader, transformLoc, m);
+
                                 rdq (frame, shader, feedbacks, 1.0f, 0, 2);
                         }));
                 }
                 if (seed_p) {
                         NF(({
+                                matrix4 m = {0};
+                                matrix4_identity(m);
+                                shaderSetTransform(shader, transformLoc, m);
+
                                 WithMaterialOn material(seedmat);
                                 float uv[] = { 1.0f, 1.0f };
 
@@ -177,10 +241,15 @@ void razors(display_frame_t frame,
                         }));
                 }
         }
+        OGL_TRACE;
 
         {
                 WithMaterialOn material(mat);
+                matrix4 m = {0};
+                matrix4_identity(m);
+                shaderSetTransform(shader, transformLoc, m);
+                shaderSetMaterial(shader, colorLoc, mat);
                 rdq (frame, shader, feedbacks, 1.0f, 1, 0);
         }
-
+        OGL_TRACE;
 }

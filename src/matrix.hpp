@@ -356,10 +356,10 @@ static inline void matrix4_mul(matrix4 adst, matrix4 b)
         for (int row = 0; row < 4; row++) {
                 for (int col = 0; col < 4; col++) {
                         result[4*row + col] =
-                                adst[4*row + 0] * b[4*0 + col] +
-                                adst[4*row + 1] * b[4*1 + col] +
-                                adst[4*row + 2] * b[4*2 + col] +
-                                adst[4*row + 3] * b[4*3 + col];
+                                b[4*row + 0] * adst[4*0 + col] +
+                                b[4*row + 1] * adst[4*1 + col] +
+                                b[4*row + 2] * adst[4*2 + col] +
+                                b[4*row + 3] * adst[4*3 + col];
                 }
         }
 
@@ -424,23 +424,23 @@ static inline void matrix4_from_quaternion (matrix4 matrix, vector4 q)
 
         float const q3q3 = q[3] * q3s;
 
-        matrix [4*0 + 0] = 1.0f - (q2q2 + q3q3);
-        matrix [4*0 + 1] = q1q2 + q0q3;
-        matrix [4*0 + 2] = q1q3 - q0q2;
-        matrix [4*0 + 3] = 0.0f;
+        matrix [0 + 0*4] = 1.0f - (q2q2 + q3q3);
+        matrix [0 + 1*4] = q1q2 + q0q3;
+        matrix [0 + 2*4] = q1q3 - q0q2;
+        matrix [0 + 3*4] = 0.0f;
 
-        matrix [4*1 + 0] = q1q2 - q0q3;
-        matrix [4*1 + 1] = 1.0f - (q1q1 + q3q3);
-        matrix [4*1 + 2] = q2q3 + q0q1;
-        matrix [4*1 + 3] = 0.0f;
+        matrix [1 + 0*4] = q1q2 - q0q3;
+        matrix [1 + 1*4] = 1.0f - (q1q1 + q3q3);
+        matrix [1 + 2*4] = q2q3 + q0q1;
+        matrix [1 + 3*4] = 0.0f;
 
-        matrix [4*2 + 0] = q1q3 + q0q2;
-        matrix [4*2 + 1] = q2q3 - q0q1;
-        matrix [4*2 + 2] = 1.0f - (q1q1 + q2q2);
-        matrix [4*2 + 3] = 0.0f;
+        matrix [2 + 0*4] = q1q3 + q0q2;
+        matrix [2 + 1*4] = q2q3 - q0q1;
+        matrix [2 + 2*4] = 1.0f - (q1q1 + q2q2);
+        matrix [2 + 3*4] = 0.0f;
 
-        matrix [4*3 + 0] = 0.0f;
-        matrix [4*3 + 1] = 0.0f;
-        matrix [4*3 + 2] = 0.0f;
-        matrix [4*3 + 3] = 1.0f;
+        matrix [3 + 0*4] = 0.0f;
+        matrix [3 + 1*4] = 0.0f;
+        matrix [3 + 2*4] = 0.0f;
+        matrix [3 + 3*4] = 1.0f;
 }

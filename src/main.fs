@@ -1,9 +1,12 @@
 #version 150
 
-in vec2 factor;
+uniform sampler2D tex;
+uniform vec4 g_color;
+
+smooth in vec2 ftexcoord;
 out vec4 color;
 
 void main()
 {
-        color = vec4(1.0, 0.5 + factor.x, 1.0, 0.90);
+        color = g_color * texture(tex, ftexcoord);
 }

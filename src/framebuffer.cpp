@@ -25,12 +25,14 @@ public:
                 glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
                 auto resolution = framebufferResolution();
+                width = resolution.first;
+                height = resolution.second;
                 glBindTexture(GL_TEXTURE_2D, texture.ref);
                 glTexImage2D(GL_TEXTURE_2D,
                              0,
                              GL_RGBA,
-                             resolution.first,
-                             resolution.second,
+                             width,
+                             height,
                              0,
                              GL_RGBA,
                              GL_UNSIGNED_INT_8_8_8_8_REV,
@@ -88,23 +90,30 @@ public:
 
         void on()
         {
+                auto resolution = framebufferResolution();
                 glBindFramebuffer(GL_FRAMEBUFFER, id);
                 glDrawBuffer (GL_COLOR_ATTACHMENT0);
                 glReadBuffer (GL_COLOR_ATTACHMENT0);
-                glPushAttrib (GL_VIEWPORT_BIT | GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                glViewport (0.0, 0.0, width, height);
+                restore_width = resolution.first;
+                restore_height = resolution.second;
         }
 
         void off()
         {
-                glPopAttrib();
                 glBindFramebuffer(GL_FRAMEBUFFER, 0);
                 glReadBuffer (GL_BACK);
                 glDrawBuffer (GL_BACK);
+                glViewport(0.0, 0.0, restore_width, restore_height);
         }
 
         GLuint id;
         Texture texture;
         GLuint depthrenderbuffer;
+        float restore_width;
+        float restore_height;
+        float width;
+        float height;
 };
 
 Framebuffer::Framebuffer() : impl(new Framebuffer::Impl())
