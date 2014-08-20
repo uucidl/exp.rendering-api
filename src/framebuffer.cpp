@@ -35,6 +35,10 @@ public:
                              GL_RGBA,
                              GL_UNSIGNED_INT_8_8_8_8_REV,
                              NULL);
+                // no mipmapping
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
                 glBindTexture(GL_TEXTURE_2D, 0);
 
                 glGenFramebuffers(1, &id);
