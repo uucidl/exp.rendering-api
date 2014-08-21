@@ -94,7 +94,7 @@ public:
                 glBindFramebuffer(GL_FRAMEBUFFER, id);
                 glDrawBuffer (GL_COLOR_ATTACHMENT0);
                 glReadBuffer (GL_COLOR_ATTACHMENT0);
-                glViewport (0.0, 0.0, width, height);
+                glViewport (0, 0, width, height);
                 restore_width = resolution.first;
                 restore_height = resolution.second;
         }
@@ -104,16 +104,16 @@ public:
                 glBindFramebuffer(GL_FRAMEBUFFER, 0);
                 glReadBuffer (GL_BACK);
                 glDrawBuffer (GL_BACK);
-                glViewport(0.0, 0.0, restore_width, restore_height);
+                glViewport(0, 0, restore_width, restore_height);
         }
 
         GLuint id;
         Texture texture;
         GLuint depthrenderbuffer;
-        float restore_width;
-        float restore_height;
-        float width;
-        float height;
+        GLint restore_width;
+        GLint restore_height;
+        GLint width;
+        GLint height;
 };
 
 Framebuffer::Framebuffer() : impl(new Framebuffer::Impl())
