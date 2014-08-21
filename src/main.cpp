@@ -151,10 +151,12 @@ extern void render_next_gl3(uint64_t time_micros)
                 &resources.framebuffers[2],
         };
 
-        razors(&frame, 1.0 * time_micros / 1.0e5,
-               resources.classyWhite, resources.mainShader,
-               framebuffers, 55.7, 7.0, 0.06, sincos[0] > 0.44 ? 1 : 0,
-               resources.brightWhite, resources.pinkShader);
+        if (resources.mainShader.ref() && resources.pinkShader.ref()) {
+                razors(&frame, 1.0 * time_micros / 1.0e5,
+                       resources.classyWhite, resources.mainShader,
+                       framebuffers, 55.7f, 7.0f, 0.006f, sincos[0] > 0.44 ? 1 : 0,
+                       resources.brightWhite, resources.pinkShader);
+        }
 }
 
 int main (int argc, char** argv)
