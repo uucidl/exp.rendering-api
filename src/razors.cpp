@@ -92,7 +92,6 @@ static void rdq (display_frame_t frame,
         quad.defQuad2d(0, -1.0f + border, 1.0f - border, 2.0f - border,
                        -2.0f + border,
                        uv[0]*hborder, uv[1]*hborder, uv[0]*(1.0f - hborder), uv[1]*(1.0f - hborder));
-
         WithTexture2DBoundScope bindTexture(feedback[input]->asTexture());
         if (clear_p) {
                 glClearColor (0.0f, 0.0f, 0.0f, 0.0f);
@@ -144,7 +143,7 @@ void razors(display_frame_t frame,
                 WithMaterialOn material(mat);
                 {
                         WithFramebufferScope subframe1(*feedbacks[1]);
-                        NF(({
+                        NF([&]() {
                                 matrix4 m = {0};
                                 matrix4_identity(m);
                                 movev(m, 0.001*cos(phase/50.0));
@@ -157,12 +156,12 @@ void razors(display_frame_t frame,
                                 shaderSetMaterial(shader, colorLoc, mat);
                                 shaderSetTransform(shader, transformLoc, m);
                                 rdq (frame, shader, feedbacks, 1.0f, 1, 0);
-                        }));
+                        });
                 }
 
                 {
                         WithFramebufferScope subframe2(*feedbacks[2]);
-                        NF(({
+                        NF([&]() {
                                 matrix4 m = {0};
                                 matrix4_identity(m);
                                 moveh(m, 0.005*sin(phase/500.));
@@ -171,14 +170,14 @@ void razors(display_frame_t frame,
                                 shaderSetMaterial(shader, colorLoc, mat);
                                 shaderSetTransform(shader, transformLoc, m);
                                 rdq (frame, shader, feedbacks, 1.0f, 1, 0);
-                        }));
+                        });
                 }
         }
         OGL_TRACE;
 
         {
                 WithFramebufferScope subframe0(*feedbacks[0]);
-                NF(({
+                NF([&]() {
                         {
                                 WithMaterialOn material(mat);
                                 matrix4 m = {0};
@@ -204,11 +203,10 @@ void razors(display_frame_t frame,
                                         quad.draw();
                                 }
                         }
-                }));
-
+                });
                 {
                         WithMaterialOn material(mat);
-                        NF(({
+                        NF([&]() {
                                 matrix4 m = {0};
                                 matrix4_identity(m);
                                 rotz(m, 1./4.*(1. + 0.71 * rot)*cos(phase/10.0)*cos(phase/10.0)*
@@ -216,18 +214,18 @@ void razors(display_frame_t frame,
                                 shaderSetMaterial(shader, colorLoc, mat);
                                 shaderSetTransform(shader, transformLoc, m);
                                 rdq (frame, shader, feedbacks, 1.0f, 0, 1);
-                        }));
+                        });
 
-                        NF(({
+                        NF([&]() {
                                 matrix4 m = {0};
                                 matrix4_identity(m);
                                 shaderSetTransform(shader, transformLoc, m);
 
                                 rdq (frame, shader, feedbacks, 1.0f, 0, 2);
-                        }));
+                        });
                 }
                 if (seed_p) {
-                        NF(({
+                        NF([&]() {
                                 matrix4 m = {0};
                                 matrix4_identity(m);
                                 shaderSetTransform(shader, transformLoc, m);
@@ -241,7 +239,7 @@ void razors(display_frame_t frame,
 
                                 quad.bind(seedshader);
                                 quad.draw();
-                        }));
+                        });
                 }
         }
         OGL_TRACE;
