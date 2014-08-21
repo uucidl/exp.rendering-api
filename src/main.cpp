@@ -7,20 +7,12 @@
 #include "shader_types.h"
 #include "texture.h"
 #include "texture_types.h"
+#include "matrix.hpp"
 
 #include <micros/api.h>
 
 #include <GL/glew.h>
 #include "debug.h"
-
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wmissing-field-initializers"
-
-#define STB_PERLIN_IMPLEMENTATION
-#include "stb_perlin.h"
-#undef STB_PERLIN_IMPLEMENTATION
-
-#pragma clang diagnostic pop
 
 #include <math.h>
 #include <stdio.h> // for printf
@@ -121,38 +113,6 @@ extern void render_next_gl3(uint64_t time_micros)
                                 glUniform1i(texture1Loc, 0); // bind to texture unit 0
                                 OGL_TRACE;
                         });
-
-                        {
-                                int const width = 64;
-                                int const height = 64;
-                                OGL_TRACE;
-
-                                WithTexture2DBoundScope withTexture(noiseTexture);
-
-                                uint32_t data[width*height];
-                                for (int y = 0; y < height; y++) {
-                                        for (int x = 0; x < width; x++) {
-                                                float val = stb_perlin_noise3(1.0 * x / width, 1.0 * y / height, 0.0);
-                                                char const ival = 255 * val;
-                                                data[x + y*width] = (ival << 16) | (ival << 8) | ival;
-                                        }
-                                }
-                                OGL_TRACE;
-
-                                glTexImage2D(GL_TEXTURE_2D,
-                                             0,
-                                             GL_RGBA,
-                                             width,
-                                             height,
-                                             0,
-                                             GL_RGBA,
-                                             GL_UNSIGNED_INT_8_8_8_8_REV,
-                                             data);
-                                glGenerateMipmap(GL_TEXTURE_2D);
-
-                                OGL_TRACE;
-                        }
-
                 }
 
                 Material classyWhite;
