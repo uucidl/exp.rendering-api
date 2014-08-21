@@ -82,18 +82,22 @@ extern void render_next_gl3(uint64_t time_micros)
                 Resources() : shader_loader(tasks, srcFileSystem)
                 {
                         OGL_TRACE;
+                        vector4 argb;
+                        vector4_make(argb,
+                                     0.99997f, 1.0f, 1.0f, 1.0f
+                                    );
                         classyWhite.commitWith(MF_NO_DEPTH_TEST | MF_BLEND | MF_TEXTURE_REPEAT,
-                        (float[4]) {
-                                0.99997f, 1.0f, 1.0f, 1.0f
-                        });
+                                               argb);
+                        vector4_make(argb,
+                                     0.99997f, 1.0f, 0.90f, 0.91f
+                                    );
                         reddishWhite.commitWith(MF_NO_DEPTH_TEST | MF_BLEND | MF_TEXTURE_REPEAT,
-                        (float[4]) {
-                                0.99997f, 1.0f, 0.90f, 0.91f
-                        });
+                                                argb);
+                        vector4_make(argb,
+                                     1.0f, 1.0f, 1.0f, 1.0f
+                                    );
                         brightWhite.commitWith(MF_NO_DEPTH_TEST | MF_BLEND | MF_TEXTURE_REPEAT,
-                        (float[4]) {
-                                1.0f, 1.0f, 1.0f, 1.0f
-                        });
+                                               argb);
 
                         OGL_TRACE;
 
