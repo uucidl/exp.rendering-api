@@ -41,7 +41,7 @@ static inline float clamp_f (float const f, float const min_b,
  *
  * vector4 are also a convenient representation for argb colors.
  */
-typedef float vector4[4] __attribute__((__aligned__(16)));
+typedef float vector4[4];
 
 /**
  * Initializes a 4d vector.
@@ -309,7 +309,7 @@ static inline void spherical_to_cartesian (vector4 dest, vector4 spherical)
  *         [0x08] ... [0x0b]
  *         [0x0c] ... [0x0f]
  */
-typedef float matrix4[4*4] __attribute__((__aligned__(16)));
+typedef float matrix4[4*4];
 
 /**
  * The null matrix
