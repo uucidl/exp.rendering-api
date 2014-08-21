@@ -17,58 +17,59 @@
 static const double TAU =
         6.28318530717958647692528676655900576839433879875021;
 
-static inline void scale1(matrix4& matrix, float f)
+static inline void scale1(matrix4& matrix, double f)
 {
         matrix4 t;
         matrix4_identity(t);
 
-        t[0] *= -f;
-        t[5] *= f;
+        t[0] *= static_cast<float>(-f);
+        t[5] *= static_cast<float>(f);
 
         matrix4_mul(matrix, t);
 }
 
-static inline void rotx(matrix4& matrix, float f)
+static inline void rotx(matrix4& matrix, double f)
 {
         vector4 axis;
         vector4_make(axis, 1.0f, 0.0f, 0.0f, 0.0f);
         vector4 quat;
-        quaternion_make_rotation(quat, 360.0f * f, axis);
+        quaternion_make_rotation(quat, static_cast<float>(360.0f * f), axis);
         matrix4 rotation;
         matrix4_from_quaternion(rotation, quat);
         matrix4_mul(matrix, rotation);
 }
 
-static inline void rotz(matrix4& matrix, float f)
+static inline void rotz(matrix4& matrix, double f)
 {
         vector4 axis;
         vector4_make(axis, 0.0f, 0.0f, 1.0f, 0.0f);
         vector4 quat;
-        quaternion_make_rotation(quat, 360.0f * f, axis);
+        quaternion_make_rotation(quat, static_cast<float>(360.0f * f), axis);
         matrix4 rotation;
         matrix4_from_quaternion(rotation, quat);
         matrix4_mul(matrix, rotation);
 }
 
-static inline void moveh(matrix4& matrix, float f)
+static inline void moveh(matrix4& matrix, double f)
 {
         matrix4 t;
         matrix4_identity(t);
-        t[3*4 + 0] = f;
+        t[3*4 + 0] = static_cast<float>(f);
         matrix4_mul(matrix, t);
 }
 
-static void movev(matrix4& matrix, float f)
+static void movev(matrix4& matrix, double f)
 {
         matrix4 t;
         matrix4_identity(t);
-        t[3*4 + 1] = f;
+        t[3*4 + 1] = static_cast<float>(f);
         matrix4_mul(matrix, t);
 }
 
-#define NF(block) do {						\
-                block;						\
-        } while (0)
+static void NF(std::function <void ()> block)
+{
+        block();
+}
 
 static void rdq (display_frame_t frame,
                  ShaderProgram const& shader,
@@ -132,7 +133,7 @@ void razors(display_frame_t frame,
             ShaderProgram const& seedshader)
 {
         OGL_TRACE;
-        double const phase = ms / 1000.0f;
+        double const phase = ms / 1000.0;
 
         GLint transformLoc = glGetUniformLocation(shader.ref(), "transform");
         GLint colorLoc = glGetUniformLocation(shader.ref(), "g_color");
@@ -146,11 +147,12 @@ void razors(display_frame_t frame,
                         NF(({
                                 matrix4 m = {0};
                                 matrix4_identity(m);
-                                movev(m, 0.001f*cos(phase/50.0f));
-                                scale1(m, 1.0f*(1.f + 0.001f*sin(phase*TAU + TAU/6.0f)
-                                                + 0.01f*aa));
-                                rotx(m, 1.0f / 96.0f * (1.f + 0.1f*sin(phase/7.0 * TAU/3.f)));
-                                rotz(m, 1.0f / 4.0f * sin(phase * TAU / 33.33f));
+                                movev(m, 0.001*cos(phase/50.0));
+                                scale1(m, 1.
+                                       + 0.001*sin(phase*TAU + TAU/6.0)
+                                       + 0.01*aa);
+                                rotx(m, 1.0 / 96.0 * (1. + 0.1*sin(phase/7.0 * TAU/3.)));
+                                rotz(m, 1.0 / 4.0 * sin(phase * TAU / 33.33));
 
                                 shaderSetMaterial(shader, colorLoc, mat);
                                 shaderSetTransform(shader, transformLoc, m);
@@ -163,9 +165,9 @@ void razors(display_frame_t frame,
                         NF(({
                                 matrix4 m = {0};
                                 matrix4_identity(m);
-                                moveh(m, 0.005*sin(phase/500.f));
-                                scale1(m, 1.0f*(1.0f + 0.07f*cos(phase*TAU)));
-                                rotx(m, 1.0f / 6.0f * (1.f + 0.005f * rot));
+                                moveh(m, 0.005*sin(phase/500.));
+                                scale1(m, 1.0*(1.0 + 0.07*cos(phase*TAU)));
+                                rotx(m, 1.0 / 6.0 * (1. + 0.005 * rot));
                                 shaderSetMaterial(shader, colorLoc, mat);
                                 shaderSetTransform(shader, transformLoc, m);
                                 rdq (frame, shader, feedbacks, 1.0f, 1, 0);
@@ -209,7 +211,8 @@ void razors(display_frame_t frame,
                         NF(({
                                 matrix4 m = {0};
                                 matrix4_identity(m);
-                                rotz(m, 1./4.*(1.f + 0.71f * rot)*cos(phase/10.0f)*cos(phase/10.0f)*(1.f + 0.01f * aa));
+                                rotz(m, 1./4.*(1. + 0.71 * rot)*cos(phase/10.0)*cos(phase/10.0)*
+                                     (1. + 0.01 * aa));
                                 shaderSetMaterial(shader, colorLoc, mat);
                                 shaderSetTransform(shader, transformLoc, m);
                                 rdq (frame, shader, feedbacks, 1.0f, 0, 1);
