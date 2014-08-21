@@ -123,7 +123,6 @@ extern void render_next_gl3(uint64_t time_micros)
                 ShaderLoader shader_loader;
                 GLuint position_attr;
                 Framebuffer framebuffers[3];
-                Texture noiseTexture;
         } resources;
 
         OGL_TRACE;
