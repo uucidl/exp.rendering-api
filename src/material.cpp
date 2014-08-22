@@ -25,11 +25,24 @@ void material_commit_with(MaterialImpl* material, int flags, float argb[4])
 
 void material_on(MaterialImpl* material)
 {
-        if (material->flags & MF_BLEND) {
+        auto flags = material->flags;
+
+        if (flags & MF_BLEND) {
                 glEnable(GL_BLEND);
                 glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
                 glDisable (GL_DEPTH_TEST);
                 glDepthMask (GL_FALSE);
+        } else {
+                glDisable(GL_BLEND);
+        }
+
+        if (flags & MF_NO_DEPTH_TEST) {
+                glDisable (GL_DEPTH_TEST);
+                glDepthMask (GL_FALSE);
+        } else {
+                glEnable (GL_DEPTH_TEST);
+                glDepthMask (GL_TRUE);
+                glDepthFunc(GL_LESS);
         }
 }
 

@@ -86,17 +86,12 @@ extern void render_next_gl3(uint64_t time_micros)
                         vector4_make(argb,
                                      0.99997f, 1.0f, 1.0f, 1.0f
                                     );
-                        classyWhite.commitWith(MF_NO_DEPTH_TEST | MF_BLEND | MF_TEXTURE_REPEAT,
+                        classyWhite.commitWith(MF_NO_DEPTH_TEST | MF_BLEND,
                                                argb);
-                        vector4_make(argb,
-                                     0.99997f, 1.0f, 0.90f, 0.91f
-                                    );
-                        reddishWhite.commitWith(MF_NO_DEPTH_TEST | MF_BLEND | MF_TEXTURE_REPEAT,
-                                                argb);
                         vector4_make(argb,
                                      1.0f, 1.0f, 1.0f, 1.0f
                                     );
-                        brightWhite.commitWith(MF_NO_DEPTH_TEST | MF_BLEND | MF_TEXTURE_REPEAT,
+                        brightWhite.commitWith(MF_NO_DEPTH_TEST | MF_BLEND,
                                                argb);
 
                         OGL_TRACE;
@@ -121,7 +116,6 @@ extern void render_next_gl3(uint64_t time_micros)
 
                 Material classyWhite;
                 Material brightWhite;
-                Material reddishWhite;
                 ShaderProgram mainShader;
                 ShaderProgram pinkShader;
                 ShaderLoader shader_loader;
@@ -157,7 +151,7 @@ extern void render_next_gl3(uint64_t time_micros)
         if (resources.mainShader.ref() && resources.pinkShader.ref()) {
                 razors(&frame, 1.0 * time_micros / 1.0e5,
                        resources.classyWhite, resources.mainShader,
-                       framebuffers, 55.7f, 7.0f, 0.006f, sincos[0] > 0.44 ? 1 : 0,
+                       framebuffers, 22.0f, 8.0f, .06f, sincos[0] > 0.44 ? 1 : 0,
                        resources.brightWhite, resources.pinkShader);
         }
 }

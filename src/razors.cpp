@@ -189,10 +189,10 @@ void razors(display_frame_t frame,
                                 float black_argb[4] = { blackf, 0.0f, 0.0f, 0.0f };
 
                                 Material blacken;
-                                blacken.commitWith (MF_BLEND, black_argb);
+                                blacken.commitWith (MF_BLEND | MF_NO_DEPTH_TEST, black_argb);
 
                                 Mesh quad;
-                                quad.defQuad2d(0, -1.0f, 1.0f, 2.0f, -2.0f, 0.0f, 0.0f, 1.f, 1.f);
+                                quad.defQuad2d(0, -1.0f, -1.0f, 2.0f, 2.0f, 0.0f, 0.0f, 1.f, 1.f);
 
                                 {
                                         WithMaterialOn material(blacken);
