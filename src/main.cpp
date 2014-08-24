@@ -1,3 +1,5 @@
+#include "razors.hpp"
+
 #include <GL/glew.h>
 #include <micros/api.h>
 
@@ -28,6 +30,12 @@ static void draw_changing_background(uint64_t time_micros)
 extern void render_next_gl3(uint64_t time_micros)
 {
         draw_changing_background(time_micros);
+
+        static struct Resources {
+                RazorsResource razors { makeRazors() };
+        } all;
+
+        draw(*all.razors);
 }
 
 extern int main()
