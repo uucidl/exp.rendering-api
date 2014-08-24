@@ -30,6 +30,26 @@ RenderbufferResource::~RenderbufferResource()
         glDeleteRenderbuffers(1, &id);
 }
 
+BufferResource::BufferResource()
+{
+        glGenBuffers(1, &id);
+}
+
+BufferResource::~BufferResource()
+{
+        glDeleteBuffers(1, &id);
+}
+
+VertexArrayResource::VertexArrayResource()
+{
+        glGenVertexArrays(1, &id);
+}
+
+VertexArrayResource::~VertexArrayResource()
+{
+        glDeleteVertexArrays(1, &id);
+};
+
 void withTexture(TextureResource const& texture,
                  std::function<void()> fn)
 {
@@ -47,9 +67,33 @@ void withFramebuffer(FramebufferResource const& fb,
 }
 
 void withRenderbuffer(RenderbufferResource const& fb,
-                      std::function<void ()> fn)
+                      std::function<void()> fn)
 {
         glBindRenderbuffer(GL_RENDERBUFFER, fb.id);
         fn();
         glBindRenderbuffer(GL_RENDERBUFFER, 0);
+}
+
+void withArrayBuffer(BufferResource const& buffer,
+                     std::function<void()> fn)
+{
+        glBindBuffer(GL_ARRAY_BUFFER, buffer.id);
+        fn();
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+void withElementBuffer(BufferResource const& buffer,
+                       std::function<void()> fn)
+{
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffer.id);
+        fn();
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+}
+
+void withVertexArray(VertexArrayResource const& vertexArray,
+                     std::function<void()> fn)
+{
+        glBindVertexArray(vertexArray.id);
+        fn();
+        glBindVertexArray(0);
 }

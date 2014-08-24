@@ -50,8 +50,34 @@ public:
         GLuint id;
 };
 
+class BufferResource
+{
+        ENFORCE_ID_OBJECT(BufferResource);
+public:
+        BufferResource();
+        ~BufferResource();
+
+        GLuint id;
+};
+
+class VertexArrayResource
+{
+        ENFORCE_ID_OBJECT(VertexArrayResource);
+public:
+        VertexArrayResource();
+        ~VertexArrayResource();
+
+        GLuint id;
+};
+
 void withTexture(TextureResource const& texture, std::function<void()> fn);
 void withFramebuffer(FramebufferResource const& fb,
                      std::function<void ()> fn);
 void withRenderbuffer(RenderbufferResource const& fb,
                       std::function<void ()> fn);
+void withArrayBuffer(BufferResource const& buffer,
+                     std::function<void()> fn);
+void withElementBuffer(BufferResource const& buffer,
+                       std::function<void()> fn);
+void withVertexArray(VertexArrayResource const& vertexArray,
+                     std::function<void()> fn);
