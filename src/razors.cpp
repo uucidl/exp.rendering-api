@@ -2,6 +2,7 @@
 
 #include "estd.hpp"
 #include "glresource_types.hpp"
+#include "gldebug.hpp"
 
 #define BEGIN_NOWARN_BLOCK \
         _Pragma("clang diagnostic push") \
@@ -21,6 +22,9 @@ END_NOWARN_BLOCK
 #include <GL/glew.h>
 
 #include <cstdlib>
+#include <memory>
+#include <sstream>
+#include <string>
 #include <vector>
 
 static std::pair<int, int> rootViewport()
@@ -129,30 +133,11 @@ struct Framebuffer {
         int height;
 };
 
-static void withOutputTo(Framebuffer const& framebuffer,
-                         std::function<void()> draw)
-{
-        auto resolution = rootViewport();
-        glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.output.id);
-        glDrawBuffer (GL_COLOR_ATTACHMENT0);
-        glReadBuffer (GL_COLOR_ATTACHMENT0);
-        glViewport (0, 0, framebuffer.width, framebuffer.height);
-
-        draw();
-
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glReadBuffer (GL_BACK);
-        glDrawBuffer (GL_BACK);
-        glViewport(0, 0, resolution.first, resolution.second);
-}
-
 struct Geometry {
         BufferResource vertices;
         BufferResource texcoords;
         BufferResource indices;
         size_t indicesCount;
-
-        VertexArrayResource array;
 };
 
 // as a sequence of triangles
@@ -212,10 +197,6 @@ public:
         Framebuffer resultFrame;
 };
 
-static void projectFramebuffer(Framebuffer const& source)
-{
-}
-
 static void perlin_noise(uint32_t* data, int width, int height)
 {
         for (int y = 0; y < height; y++) {
@@ -241,6 +222,160 @@ static void perlin_noise(uint32_t* data, int width, int height)
         }
 }
 
+struct RenderingProgram {
+        GLuint programId {0};
+        GLsizei elementCount;
+        VertexArrayResource array;
+};
+
+static void validate(ShaderProgramResource const& program)
+{
+        glValidateProgram (program.id);
+        GLint status;
+        glGetProgramiv (program.id, GL_VALIDATE_STATUS, &status);
+        if (status == GL_FALSE) {
+                GLint length;
+                glGetProgramiv (program.id, GL_INFO_LOG_LENGTH, &length);
+
+                std::vector<char> pinfo;
+                pinfo.reserve(length + 1);
+
+                glGetProgramInfoLog (program.id, length, &length, &pinfo.front());
+
+                printf ("ERROR: validating program [%s]\n", &pinfo.front());
+        }
+}
+
+static void defineRenderingProgram(RenderingProgram& renderingProgram,
+                                   ShaderProgramResource const& program, Geometry const& geometry)
+{
+        auto const programId = program.id;
+        renderingProgram.programId = programId;
+        renderingProgram.elementCount = geometry.indicesCount;
+
+        withVertexArray(renderingProgram.array,
+        [&program,&geometry,programId]() {
+                GLuint const position_attrib = glGetAttribLocation(program.id, "position");
+                GLuint const texcoord_attrib = glGetAttribLocation(program.id, "texcoord");
+
+                glBindBuffer(GL_ARRAY_BUFFER, geometry.texcoords.id);
+                glVertexAttribPointer(texcoord_attrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
+
+                glBindBuffer(GL_ARRAY_BUFFER, geometry.vertices.id);
+                glVertexAttribPointer(position_attrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
+
+                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, geometry.indices.id);
+
+                glEnableVertexAttribArray(position_attrib);
+                glEnableVertexAttribArray(texcoord_attrib);
+
+                validate(program);
+        });
+}
+
+static void drawTriangles(RenderingProgram const& primitive,
+                          TextureResource& texture)
+{
+        withTexture(texture,
+        [&primitive]() {
+                glUseProgram(primitive.programId);
+                withVertexArray(primitive.array, [&primitive]() {
+                        glDrawElements(GL_TRIANGLES, primitive.elementCount, GL_UNSIGNED_INT, 0);
+                });
+                glUseProgram(0);
+        });
+}
+
+struct SimpleShaderProgram : public ShaderProgramResource {
+        VertexShaderResource vertexShader;
+        FragmentShaderResource fragmentShader;
+};
+
+class SplitLines
+{
+public:
+        SplitLines(std::string const& source)
+        {
+                std::stringstream ss {source};
+                std::string item;
+                while (getline(ss, item, '\n')) {
+                        lines.push_back(item + "\n");
+                }
+                for (auto const& str : lines) {
+                        cstrs.emplace_back(str.c_str());
+                }
+        }
+
+        std::vector<std::string const> lines;
+        std::vector<char const*> cstrs;
+};
+
+template <typename ResourceType>
+void innerCompile(ResourceType const& shader, std::string const& source)
+{
+        SplitLines lines (source);
+        glShaderSource(shader.id, lines.cstrs.size(), &lines.cstrs.front(), NULL);
+        glCompileShader(shader.id);
+
+        GLint status;
+        glGetShaderiv (shader.id, GL_COMPILE_STATUS, &status);
+        if (status == GL_FALSE) {
+                GLint length;
+                glGetShaderiv (shader.id, GL_INFO_LOG_LENGTH, &length);
+
+                std::vector<char> sinfo;
+                sinfo.reserve(length + 1);
+                glGetShaderInfoLog(shader.id, length, &length, &sinfo.front());
+
+                printf ("ERROR compiling shader [%s] with source [\n", &sinfo.front());
+                printf ("%s", source.c_str());
+                printf ("]\n");
+        }
+}
+
+static void compile(VertexShaderResource const& shader,
+                    std::string const& source)
+{
+        return innerCompile(shader, source);
+}
+
+static void compile(FragmentShaderResource const& shader,
+                    std::string const& source)
+{
+        return innerCompile(shader, source);
+}
+
+static void defineProgram(SimpleShaderProgram& program,
+                          std::string const& vertexShaderSource,
+                          std::string const& fragmentShaderSource)
+{
+        compile(program.vertexShader, vertexShaderSource);
+        compile(program.fragmentShader, fragmentShaderSource);
+
+        glAttachShader(program.id, program.vertexShader.id);
+        glAttachShader(program.id, program.fragmentShader.id);
+        glLinkProgram(program.id);
+
+        glUseProgram(program.id);
+        GLint textureLoc = glGetUniformLocation(program.id, "tex");
+        GLint transformLoc = glGetUniformLocation(program.id, "transform");
+        GLint colorLoc = glGetUniformLocation(program.id, "g_color");
+
+        float idmatrix[4*4] = {
+                1.0f, 0.0f, 0.0f, 0.0f,
+                0.0f, 1.0f, 0.0f, 0.0f,
+                0.0f, 0.0f, 1.0f, 0.0f,
+                0.0f, 0.0f, 0.0f, 1.0f,
+        };
+        glUniformMatrix4fv(transformLoc, 1, GL_FALSE, idmatrix);
+        glUniform4f(colorLoc, 1.0f, 1.0f, 1.0f, 1.0f);
+
+        glUniform1i(textureLoc, 0); // bind to texture unit 0
+        glUseProgram(0);
+}
+
+#include "inlineshaders.hpp"
+
 static void seed()
 {
         static struct Seed {
@@ -253,12 +388,21 @@ static void seed()
                                               resolution.first, resolution.second,
                                               perlin_noise));
 
-                        define2DQuad(quad, -1.0, -1.0, 2.0, 2.0, 0.0, 0.0, 1.0, 1.0);
+                        define2DQuad(quadGeometry, -1.0, -1.0, 2.0, 2.0, 0.0, 0.0, 1.0, 1.0);
+                        defineProgram(program, defaultVS, defaultFS);
+
+                        defineRenderingProgram(texturedQuad, program, quadGeometry);
                 };
 
                 TextureResource texture;
-                Geometry quad;
+                Geometry quadGeometry;
+                SimpleShaderProgram program;
+                RenderingProgram texturedQuad;
         } all;
+
+        if (all.program.id > 0) {
+                drawTriangles(all.texturedQuad, all.texture);
+        }
 }
 
 RazorsResource makeRazors()
@@ -266,8 +410,33 @@ RazorsResource makeRazors()
         return estd::make_unique<Razors>();
 }
 
+#if 0
+static void withOutputTo(Framebuffer const& framebuffer,
+                         std::function<void()> draw)
+{
+        auto resolution = rootViewport();
+        glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.output.id);
+        glDrawBuffer (GL_COLOR_ATTACHMENT0);
+        glReadBuffer (GL_COLOR_ATTACHMENT0);
+        glViewport (0, 0, framebuffer.width, framebuffer.height);
+
+        draw();
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glReadBuffer (GL_BACK);
+        glDrawBuffer (GL_BACK);
+        glViewport(0, 0, resolution.first, resolution.second);
+}
+
+static void projectFramebuffer(Framebuffer const& source)
+{
+}
+#endif
+
 void draw(Razors& self)
 {
+        OGL_TRACE;
+#if 0
         withOutputTo(self.previousFrame,
         [&self] () {
                 projectFramebuffer(self.resultFrame);
@@ -279,4 +448,8 @@ void draw(Razors& self)
                 seed();
         });
         projectFramebuffer(self.resultFrame);
+#endif
+
+        seed();
+        OGL_TRACE;
 }

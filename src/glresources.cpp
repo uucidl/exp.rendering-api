@@ -50,6 +50,36 @@ VertexArrayResource::~VertexArrayResource()
         glDeleteVertexArrays(1, &id);
 };
 
+ShaderProgramResource::ShaderProgramResource()
+{
+        id = glCreateProgram();
+}
+
+ShaderProgramResource::~ShaderProgramResource()
+{
+        glDeleteProgram(id);
+};
+
+VertexShaderResource::VertexShaderResource()
+{
+        id = glCreateShader(GL_VERTEX_SHADER);
+};
+
+VertexShaderResource::~VertexShaderResource()
+{
+        glDeleteShader(id);
+}
+
+FragmentShaderResource::FragmentShaderResource()
+{
+        id = glCreateShader(GL_FRAGMENT_SHADER);
+};
+
+FragmentShaderResource::~FragmentShaderResource()
+{
+        glDeleteShader(id);
+}
+
 void withTexture(TextureResource const& texture,
                  std::function<void()> fn)
 {

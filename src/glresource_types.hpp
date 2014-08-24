@@ -17,57 +17,52 @@
         Typename& operator=(Typename&) = delete;        \
         Typename& operator=(Typename&&) = delete;
 
+#define DECLARE_RESOURCE_CLASS(Typename) \
+        ENFORCE_ID_OBJECT(Typename);            \
+        public:                                 \
+        Typename();                             \
+        ~Typename();                            \
+        GLuint id;
+
+
 class TextureResource
 {
-        ENFORCE_ID_OBJECT(TextureResource);
-
-public:
-        TextureResource();
-        ~TextureResource();
-
-        GLuint id;
+        DECLARE_RESOURCE_CLASS(TextureResource);
 };
 
 class FramebufferResource
 {
-        ENFORCE_ID_OBJECT(FramebufferResource);
-
-public:
-        FramebufferResource();
-        ~FramebufferResource();
-
-        GLuint id;
+        DECLARE_RESOURCE_CLASS(FramebufferResource);
 };
 
 class RenderbufferResource
 {
-        ENFORCE_ID_OBJECT(RenderbufferResource);
-
-public:
-        RenderbufferResource();
-        ~RenderbufferResource();
-
-        GLuint id;
+        DECLARE_RESOURCE_CLASS(RenderbufferResource);
 };
 
 class BufferResource
 {
-        ENFORCE_ID_OBJECT(BufferResource);
-public:
-        BufferResource();
-        ~BufferResource();
-
-        GLuint id;
+        DECLARE_RESOURCE_CLASS(BufferResource);
 };
 
 class VertexArrayResource
 {
-        ENFORCE_ID_OBJECT(VertexArrayResource);
-public:
-        VertexArrayResource();
-        ~VertexArrayResource();
+        DECLARE_RESOURCE_CLASS(VertexArrayResource);
+};
 
-        GLuint id;
+class ShaderProgramResource
+{
+        DECLARE_RESOURCE_CLASS(ShaderProgramResource);
+};
+
+class VertexShaderResource
+{
+        DECLARE_RESOURCE_CLASS(VertexShaderResource);
+};
+
+class FragmentShaderResource
+{
+        DECLARE_RESOURCE_CLASS(FragmentShaderResource);
 };
 
 void withTexture(TextureResource const& texture, std::function<void()> fn);
