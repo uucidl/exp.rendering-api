@@ -76,3 +76,5 @@ void withElementBuffer(BufferResource const& buffer,
                        std::function<void()> fn);
 void withVertexArray(VertexArrayResource const& vertexArray,
                      std::function<void()> fn);
+void withShaderProgram(ShaderProgramResource const& program,
+                       std::function<void()> fn);

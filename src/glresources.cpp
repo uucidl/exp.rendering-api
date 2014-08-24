@@ -127,3 +127,11 @@ void withVertexArray(VertexArrayResource const& vertexArray,
         fn();
         glBindVertexArray(0);
 }
+
+void withShaderProgram(ShaderProgramResource const& program,
+                       std::function<void()> fn)
+{
+        glUseProgram(program.id);
+        fn();
+        glUseProgram(0);
+}
