@@ -27,6 +27,9 @@ END_NOWARN_BLOCK
 #include <string>
 #include <vector>
 
+static const double TAU =
+        6.28318530717958647692528676655900576839433879875021;
+
 static std::pair<int, int> rootViewport()
 {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -37,8 +40,8 @@ static std::pair<int, int> rootViewport()
         return { wh[2], wh[3] };
 }
 
-static void defineNonMipmappedTexture(int const width, int const height,
-                                      std::function<void(uint32_t* pixels, int width, int height)> pixelFiller)
+static void defineNonMipmappedARGB32Texture(int const width, int const height,
+                std::function<void(uint32_t* pixels, int width, int height)> pixelFiller)
 {
         // no mipmapping
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -81,7 +84,7 @@ static void createFramebuffer(FramebufferResource& framebuffer,
         }
 
         withTexture(framebufferResult,
-                    std::bind(defineNonMipmappedTexture,
+                    std::bind(defineNonMipmappedARGB32Texture,
                               resolution.first, resolution.second, nullptr));
 
         withFramebuffer(framebuffer,
@@ -197,13 +200,22 @@ public:
         Framebuffer resultFrame;
 };
 
-static void perlin_noise(uint32_t* data, int width, int height)
+static void perlin_noise(uint32_t* data, int width, int height,
+                         float zplane=0.0f)
 {
         for (int y = 0; y < height; y++) {
                 for (int x = 0; x < width; x++) {
                         uint8_t values[4];
+                        float alpha;
                         for (size_t i = 0; i < sizeof values / sizeof values[0]; i++) {
-                                float val = 0.5 + stb_perlin_noise3(13.0 * x / width, 17.0 * y / height, 0.0);
+                                float val = 0.5 + stb_perlin_noise3(13.0 * x / width, 17.0 * y / height,
+                                                                    zplane);
+                                if (i == 0) {
+                                        alpha = val;
+                                } else {
+                                        val *= alpha;
+                                }
+
                                 if (val > 1.0) {
                                         val = 1.0;
                                 } else if (val < 0.0) {
@@ -223,7 +235,7 @@ static void perlin_noise(uint32_t* data, int width, int height)
 }
 
 struct RenderingProgram {
-        GLuint programId {0};
+        GLuint programId;
         GLsizei elementCount;
         VertexArrayResource array;
 };
@@ -274,7 +286,7 @@ static void defineRenderingProgram(RenderingProgram& renderingProgram,
 }
 
 static void drawTriangles(RenderingProgram const& primitive,
-                          TextureResource& texture)
+                          TextureResource const& texture)
 {
         withTexture(texture,
         [&primitive]() {
@@ -356,25 +368,45 @@ static void defineProgram(SimpleShaderProgram& program,
         glAttachShader(program.id, program.fragmentShader.id);
         glLinkProgram(program.id);
 
-        glUseProgram(program.id);
-        GLint textureLoc = glGetUniformLocation(program.id, "tex");
-        GLint transformLoc = glGetUniformLocation(program.id, "transform");
-        GLint colorLoc = glGetUniformLocation(program.id, "g_color");
+        withShaderProgram(program,
+        [&program]() {
+                GLint textureLoc = glGetUniformLocation(program.id, "tex");
+                GLint colorLoc = glGetUniformLocation(program.id, "g_color");
+                GLint transformLoc = glGetUniformLocation(program.id, "transform");
 
-        float idmatrix[4*4] = {
-                1.0f, 0.0f, 0.0f, 0.0f,
-                0.0f, 1.0f, 0.0f, 0.0f,
-                0.0f, 0.0f, 1.0f, 0.0f,
-                0.0f, 0.0f, 0.0f, 1.0f,
-        };
-        glUniformMatrix4fv(transformLoc, 1, GL_FALSE, idmatrix);
-        glUniform4f(colorLoc, 1.0f, 1.0f, 1.0f, 1.0f);
+                float idmatrix[4*4] = {
+                        1.0f, 0.0f, 0.0f, 0.0f,
+                        0.0f, 1.0f, 0.0f, 0.0f,
+                        0.0f, 0.0f, 1.0f, 0.0f,
+                        0.0f, 0.0f, 0.0f, 1.0f,
+                };
+                glUniformMatrix4fv(transformLoc, 1, GL_FALSE, idmatrix);
+                glUniform4f(colorLoc, 1.0f, 1.0f, 1.0f, 1.0f);
 
-        glUniform1i(textureLoc, 0); // bind to texture unit 0
-        glUseProgram(0);
+                glUniform1i(textureLoc, 0); // bind to texture unit 0
+        });
 }
 
 #include "inlineshaders.hpp"
+
+static void withPremultipliedAlphaBlending(std::function<void()> fn)
+{
+        glEnable(GL_BLEND);
+        glBlendFunc (GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+        glDisable (GL_DEPTH_TEST);
+        glDepthMask (GL_FALSE);
+
+        fn();
+
+        glDepthMask (GL_TRUE);
+        glEnable (GL_DEPTH_TEST);
+        glDisable(GL_BLEND);
+}
+
+static int nextPowerOfTwo(int number)
+{
+        return static_cast<int> (pow(2.0, ceil(log2(number))));
+}
 
 static void seed()
 {
@@ -383,10 +415,19 @@ static void seed()
                 {
                         auto resolution = rootViewport();
 
-                        withTexture(texture,
-                                    std::bind(defineNonMipmappedTexture,
-                                              resolution.first, resolution.second,
-                                              perlin_noise));
+                        auto plane = 0.0f;
+                        for (auto const& texture : textures) {
+                                withTexture(texture,
+                                [&]() {
+                                        defineNonMipmappedARGB32Texture
+                                        (nextPowerOfTwo(resolution.first),
+                                         nextPowerOfTwo(resolution.second),
+                                        [=](uint32_t* pixels, int width, int height) {
+                                                perlin_noise(pixels, width, height, plane);
+                                        });
+                                });
+                                plane += 0.9f;
+                        }
 
                         define2DQuad(quadGeometry, -1.0, -1.0, 2.0, 2.0, 0.0, 0.0, 1.0, 1.0);
                         defineProgram(program, defaultVS, defaultFS);
@@ -394,14 +435,30 @@ static void seed()
                         defineRenderingProgram(texturedQuad, program, quadGeometry);
                 };
 
-                TextureResource texture;
+                TextureResource textures[4];
                 Geometry quadGeometry;
                 SimpleShaderProgram program;
                 RenderingProgram texturedQuad;
         } all;
 
         if (all.program.id > 0) {
-                drawTriangles(all.texturedQuad, all.texture);
+                static int i = 0;
+
+                withPremultipliedAlphaBlending
+                ([&] () {
+                        auto colorLoc = glGetUniformLocation(all.program.id, "g_color");
+                        auto period = 24;
+                        withShaderProgram(all.program, [=]() {
+                                auto origin = period*(i/period);
+                                auto maxAlpha = 0.09f;
+                                auto const alpha = maxAlpha * sin(TAU * (i - origin)/(2.0 * period));
+                                glUniform4f(colorLoc, alpha*1.0f, alpha*1.0f, alpha*1.0f, alpha);
+                        });
+                        drawTriangles(all.texturedQuad, all.textures[i/10 % 4]);
+                });
+                OGL_TRACE;
+
+                i++;
         }
 }
 
@@ -410,7 +467,6 @@ RazorsResource makeRazors()
         return estd::make_unique<Razors>();
 }
 
-#if 0
 static void withOutputTo(Framebuffer const& framebuffer,
                          std::function<void()> draw)
 {
@@ -428,28 +484,66 @@ static void withOutputTo(Framebuffer const& framebuffer,
         glViewport(0, 0, resolution.first, resolution.second);
 }
 
-static void projectFramebuffer(Framebuffer const& source)
+static void projectFramebuffer(Framebuffer const& source,
+                               float const scale = 1.0f)
 {
-}
-#endif
+        static struct Projector {
+                Projector ()
+                {
+                        define2DQuad(quadGeometry,  -1.0, -1.0, 2.0, 2.0, 0.0, 0.0, 1.0, 1.0);
+                        defineProgram(program, defaultVS, projectorFS);
 
-void draw(Razors& self)
+                        defineRenderingProgram(texturedQuad, program, quadGeometry);
+                }
+
+                Geometry quadGeometry;
+                SimpleShaderProgram program;
+                RenderingProgram texturedQuad;
+        } all;
+
+        if (all.program.id > 0) {
+                GLint colorLoc = glGetUniformLocation(all.program.id, "g_color");
+                GLint transformLoc = glGetUniformLocation(all.program.id, "transform");
+
+                float idmatrix[4*4] = {
+                        scale, 0.01f, 0.0f, 0.0f,
+                        -0.01f, scale, 0.0f, 0.0f,
+                        0.0f, 0.0f, scale, 0.0f,
+                        0.0f, 0.0f, 0.0f, 1.0f,
+                };
+                withShaderProgram
+                (all.program, [=]() {
+                        glUniformMatrix4fv(transformLoc, 1, GL_FALSE, idmatrix);
+                        auto const alpha = 0.9992f;
+                        glUniform4f(colorLoc, alpha*1.0f, alpha*1.0f, alpha*1.0f, alpha);
+                });
+                drawTriangles(all.texturedQuad, source.result);
+        }
+}
+
+static void clear()
+{
+        glClearColor (0.0, 0.0, 0.0, 0.0);
+        glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+}
+
+void draw(Razors& self, double ms)
 {
         OGL_TRACE;
-#if 0
+
         withOutputTo(self.previousFrame,
-        [&self] () {
-                projectFramebuffer(self.resultFrame);
+        [&self,ms] () {
+                clear();
+                projectFramebuffer(self.resultFrame, 0.990f + 0.010 * sin(TAU * ms / 5000.0));
         });
 
         withOutputTo(self.resultFrame,
         [&self] () {
+                clear();
                 projectFramebuffer(self.previousFrame);
                 seed();
         });
-        projectFramebuffer(self.resultFrame);
-#endif
 
-        seed();
-        OGL_TRACE;
+        clear();
+        projectFramebuffer(self.resultFrame);
 }
