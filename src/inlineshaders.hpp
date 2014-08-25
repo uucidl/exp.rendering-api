@@ -43,7 +43,7 @@ void main()
 {
 vec2 center = vec2(0.5f, 0.5f);
 float distance = distance(ftexcoord, center);
-float scale = clamp(0.22 / distance / distance, 0.0, 1.0);
+float scale = clamp(0.22 / distance / distance * max(1.0, 2.0 - pow(2.0*(distance - 0.22), 2.0)), 0.0, 1.0);
 color = scale * g_color * texture(tex, ftexcoord);
 }
 )SHADER";
