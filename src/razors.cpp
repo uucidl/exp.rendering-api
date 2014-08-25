@@ -521,7 +521,7 @@ static void projectFramebuffer(Framebuffer const& source,
                 withShaderProgram
                 (all.program, [=]() {
                         glUniformMatrix4fv(transformLoc, 1, GL_FALSE, idmatrix);
-                        auto const alpha = 0.9992f;
+                        auto const alpha = 0.9998f;
                         glUniform4f(colorLoc, alpha*1.0f, alpha*1.0f, alpha*1.0f, alpha);
                 });
                 drawTriangles(all.texturedQuad, source.result);
