@@ -40,6 +40,12 @@ static std::pair<int, int> rootViewport()
         return { wh[2], wh[3] };
 }
 
+static void clear()
+{
+        glClearColor (0.0, 0.0, 0.0, 0.0);
+        glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+}
+
 static void defineNonMipmappedARGB32Texture(int const width, int const height,
                 std::function<void(uint32_t* pixels, int width, int height)> pixelFiller)
 {
@@ -115,6 +121,7 @@ static void createFramebuffer(FramebufferResource& framebuffer,
                 });
                 glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
                                           GL_RENDERBUFFER, renderbuffer.id);
+                clear();
         });
 }
 
@@ -519,12 +526,6 @@ static void projectFramebuffer(Framebuffer const& source,
                 });
                 drawTriangles(all.texturedQuad, source.result);
         }
-}
-
-static void clear()
-{
-        glClearColor (0.0, 0.0, 0.0, 0.0);
-        glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
 void draw(Razors& self, double ms)
