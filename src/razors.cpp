@@ -200,7 +200,7 @@ static void define2DQuad(Geometry& geometry,
         geometry.indicesCount = sizeof indices / sizeof indices[0];
 
         withElementBuffer(geometry.indices,
-        [=]() {
+        [&indices]() {
                 glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof indices, indices,
                              GL_STREAM_DRAW);
         });
@@ -539,7 +539,7 @@ static void projectFramebuffer(Framebuffer const& source,
                         0.0f, 0.0f, 0.0f, 1.0f,
                 };
                 withShaderProgram
-                (all.program, [=]() {
+                (all.program, [transformLoc,colorLoc,&idmatrix]() {
                         glUniformMatrix4fv(transformLoc, 1, GL_FALSE, idmatrix);
                         auto const alpha = 0.9998f;
                         glUniform4f(colorLoc, alpha*1.0f, alpha*1.0f, alpha*1.0f, alpha);
