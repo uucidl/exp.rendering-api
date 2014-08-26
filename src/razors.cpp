@@ -1,26 +1,9 @@
 #include "razors.hpp"
 
+#include "compiler.hpp"
 #include "estd.hpp"
 #include "glresource_types.hpp"
 #include "gldebug.hpp"
-
-#if defined(__clang__)
-#  define BEGIN_NOWARN_BLOCK \
-        _Pragma("clang diagnostic push") \
-        _Pragma("clang diagnostic ignored \"-Wmissing-field-initializers\"")
-
-#  define END_NOWARN_BLOCK \
-        _Pragma("clang diagnostic pop")
-#elif defined(_MSC_VER)
-#  define BEGIN_NOWARN_BLOCK \
-        __pragma(warning(push, 3))
-
-#  define END_NOWARN_BLOCK \
-        __pragma(warning(pop))
-#else
-#  warning "missing definitions for BEGIN/END NOWARN BLOCKs"
-#endif
-
 
 BEGIN_NOWARN_BLOCK
 
@@ -224,10 +207,11 @@ static void perlin_noise(uint32_t* data, int width, int height,
         for (int y = 0; y < height; y++) {
                 for (int x = 0; x < width; x++) {
                         uint8_t values[4];
-                        float alpha;
+                        float alpha = 0.0;
                         for (size_t i = 0; i < sizeof values / sizeof values[0]; i++) {
-                                float val = 0.5 + stb_perlin_noise3(13.0 * x / width, 17.0 * y / height,
-                                                                    zplane);
+                                float val = 0.5f + stb_perlin_noise3((float) 13.0 * x / width,
+                                                                     (float) 17.0 * y / height,
+                                                                     zplane);
                                 if (i == 0) {
                                         alpha = val;
                                 } else {
@@ -479,7 +463,11 @@ static void seed()
                                 auto origin = period*(i/period);
                                 auto maxAlpha = 0.09f;
                                 auto const alpha = maxAlpha * sin(TAU * (i - origin)/(2.0 * period));
-                                glUniform4f(colorLoc, alpha*1.0f, alpha*1.0f, alpha*1.0f, alpha);
+                                glUniform4f(colorLoc,
+                                            (float) alpha*1.0f,
+                                            (float) alpha*1.0f,
+                                            (float) alpha*1.0f,
+                                            (float) alpha);
                         });
                         drawTriangles(all.texturedQuad, all.textures[i/10 % 4]);
                 });
@@ -555,7 +543,8 @@ void draw(Razors& self, double ms)
         withOutputTo(self.previousFrame,
         [&self,ms] () {
                 clear();
-                projectFramebuffer(self.resultFrame, 0.990f + 0.010 * sin(TAU * ms / 5000.0));
+                projectFramebuffer(self.resultFrame,
+                                   static_cast<float> (0.990f + 0.010f * sin(TAU * ms / 5000.0)));
         });
 
         withOutputTo(self.resultFrame,
