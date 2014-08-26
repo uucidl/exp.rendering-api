@@ -386,7 +386,7 @@ void draw(Razors& self, double ms)
         withOutputTo(self.resultFrame,
         [&self] () {
                 clear();
-                projectFramebuffer(self.previousFrame);
+                projectFramebuffer(self.previousFrame, 1.004f);
                 seed();
         });
 
