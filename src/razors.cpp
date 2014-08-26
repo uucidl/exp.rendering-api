@@ -24,6 +24,12 @@ END_NOWARN_BLOCK
 static const double TAU =
         6.28318530717958647692528676655900576839433879875021;
 
+/// sometimes we don't really care about double precision
+GLfloat glfloat(double x)
+{
+        return static_cast<float> (x);
+}
+
 static std::pair<int, int> rootViewport()
 {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -209,8 +215,8 @@ static void perlin_noise(uint32_t* data, int width, int height,
                         uint8_t values[4];
                         float alpha = 0.0;
                         for (size_t i = 0; i < sizeof values / sizeof values[0]; i++) {
-                                float val = 0.5f + stb_perlin_noise3((float) 13.0 * x / width,
-                                                                     (float) 17.0 * y / height,
+                                float val = 0.5f + stb_perlin_noise3(glfloat(13.0 * x / width),
+                                                                     glfloat(17.0 * y / height),
                                                                      zplane);
                                 if (i == 0) {
                                         alpha = val;
@@ -464,10 +470,10 @@ static void seed()
                                 auto maxAlpha = 0.09f;
                                 auto const alpha = maxAlpha * sin(TAU * (i - origin)/(2.0 * period));
                                 glUniform4f(colorLoc,
-                                            (float) alpha*1.0f,
-                                            (float) alpha*1.0f,
-                                            (float) alpha*1.0f,
-                                            (float) alpha);
+                                            glfloat(alpha*1.0),
+                                            glfloat(alpha*1.0),
+                                            glfloat(alpha*1.0),
+                                            glfloat(alpha));
                         });
                         drawTriangles(all.texturedQuad, all.textures[i/10 % 4]);
                 });
@@ -544,7 +550,7 @@ void draw(Razors& self, double ms)
         [&self,ms] () {
                 clear();
                 projectFramebuffer(self.resultFrame,
-                                   static_cast<float> (0.990f + 0.010f * sin(TAU * ms / 5000.0)));
+                                   glfloat(0.990f + 0.010f * sin(TAU * ms / 5000.0)));
         });
 
         withOutputTo(self.resultFrame,
