@@ -4,6 +4,10 @@
 #include "estd.hpp"
 #include "glresource_types.hpp"
 #include "gldebug.hpp"
+#include "glframebuffers.hpp"
+#include "glinlines.hpp"
+#include "glshaders.hpp"
+#include "gltexturing.hpp"
 
 BEGIN_NOWARN_BLOCK
 
@@ -17,111 +21,11 @@ END_NOWARN_BLOCK
 
 #include <cstdlib>
 #include <memory>
-#include <sstream>
 #include <string>
 #include <vector>
 
 static const double TAU =
         6.28318530717958647692528676655900576839433879875021;
-
-/// sometimes we don't really care about double precision
-GLfloat glfloat(double x)
-{
-        return static_cast<float> (x);
-}
-
-static std::pair<int, int> viewport()
-{
-        GLint wh[4];
-        glGetIntegerv(GL_VIEWPORT, wh);
-
-        return { wh[2], wh[3] };
-}
-
-static void clear()
-{
-        glClearColor (0.0, 0.0, 0.0, 0.0);
-        glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-}
-
-static void defineNonMipmappedARGB32Texture(int const width, int const height,
-                std::function<void(uint32_t* pixels, int width, int height)> pixelFiller)
-{
-        // no mipmapping
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-        if (!pixelFiller) {
-                glTexImage2D(GL_TEXTURE_2D,
-                             0,
-                             GL_RGBA,
-                             width,
-                             height,
-                             0,
-                             GL_RGBA,
-                             GL_UNSIGNED_INT_8_8_8_8_REV,
-                             NULL);
-                return;
-        }
-
-        std::vector<uint32_t> pixels (width * height);
-
-        pixelFiller(&pixels.front(), width, height);
-
-        glTexImage2D(GL_TEXTURE_2D,
-                     0,
-                     GL_RGBA,
-                     width,
-                     height,
-                     0,
-                     GL_RGBA,
-                     GL_UNSIGNED_INT_8_8_8_8_REV,
-                     &pixels.front());
-}
-
-static void createFramebuffer(FramebufferResource& framebuffer,
-                              TextureResource& framebufferResult, RenderbufferResource& renderbuffer,
-                              std::pair<int, int> resolution)
-{
-        if (!GLEW_EXT_framebuffer_object) {
-                std::exit(1);
-        }
-
-        withTexture(framebufferResult,
-                    std::bind(defineNonMipmappedARGB32Texture,
-                              resolution.first, resolution.second, nullptr));
-
-        withFramebuffer(framebuffer,
-        [&framebufferResult,&renderbuffer,resolution]() {
-                glFramebufferTexture2D(GL_FRAMEBUFFER,
-                                       GL_COLOR_ATTACHMENT0,
-                                       GL_TEXTURE_2D,
-                                       framebufferResult.id,
-                                       0);
-
-                auto status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-                switch(status) {
-                case GL_FRAMEBUFFER_COMPLETE:
-                        // we're cool
-                        break;
-                case GL_FRAMEBUFFER_UNSUPPORTED:
-                        printf("GL_FRAMEBUFFER_UNSUPPORTED");
-                        std::exit(1);
-                default:
-                        printf("Unknown error %d\n", status);
-                        std::exit(1);
-                }
-
-                withRenderbuffer(renderbuffer,
-                [resolution]() {
-                        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT,
-                                              resolution.first, resolution.second);
-                });
-                glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
-                                          GL_RENDERBUFFER, renderbuffer.id);
-                clear();
-        });
-}
 
 struct Framebuffer {
         Framebuffer(int desiredWidth, int desiredHeight)
@@ -246,24 +150,6 @@ struct RenderingProgram {
         VertexArrayResource array;
 };
 
-static void validate(ShaderProgramResource const& program)
-{
-        glValidateProgram (program.id);
-        GLint status;
-        glGetProgramiv (program.id, GL_VALIDATE_STATUS, &status);
-        if (status == GL_FALSE) {
-                GLint length;
-                glGetProgramiv (program.id, GL_INFO_LOG_LENGTH, &length);
-
-                std::vector<char> pinfo;
-                pinfo.reserve(length + 1);
-
-                glGetProgramInfoLog (program.id, length, &length, &pinfo.front());
-
-                printf ("ERROR: validating program [%s]\n", &pinfo.front());
-        }
-}
-
 static void defineRenderingProgram(RenderingProgram& renderingProgram,
                                    ShaderProgramResource const& program, Geometry const& geometry)
 {
@@ -317,60 +203,6 @@ struct SimpleShaderProgram : public ShaderProgramResource {
         VertexShaderResource vertexShader;
         FragmentShaderResource fragmentShader;
 };
-
-class SplitLines
-{
-public:
-        SplitLines(std::string const& source)
-        {
-                std::stringstream ss {source};
-                std::string item;
-                while (getline(ss, item, '\n')) {
-                        lines.push_back(item + "\n");
-                }
-                for (auto const& str : lines) {
-                        cstrs.emplace_back(str.c_str());
-                }
-        }
-
-        std::vector<std::string const> lines;
-        std::vector<char const*> cstrs;
-};
-
-template <typename ResourceType>
-void innerCompile(ResourceType const& shader, std::string const& source)
-{
-        SplitLines lines (source);
-        glShaderSource(shader.id, lines.cstrs.size(), &lines.cstrs.front(), NULL);
-        glCompileShader(shader.id);
-
-        GLint status;
-        glGetShaderiv (shader.id, GL_COMPILE_STATUS, &status);
-        if (status == GL_FALSE) {
-                GLint length;
-                glGetShaderiv (shader.id, GL_INFO_LOG_LENGTH, &length);
-
-                std::vector<char> sinfo;
-                sinfo.reserve(length + 1);
-                glGetShaderInfoLog(shader.id, length, &length, &sinfo.front());
-
-                printf ("ERROR compiling shader [%s] with source [\n", &sinfo.front());
-                printf ("%s", source.c_str());
-                printf ("]\n");
-        }
-}
-
-static void compile(VertexShaderResource const& shader,
-                    std::string const& source)
-{
-        return innerCompile(shader, source);
-}
-
-static void compile(FragmentShaderResource const& shader,
-                    std::string const& source)
-{
-        return innerCompile(shader, source);
-}
 
 static void defineProgram(SimpleShaderProgram& program,
                           std::string const& vertexShaderSource,
