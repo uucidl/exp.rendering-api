@@ -30,10 +30,8 @@ GLfloat glfloat(double x)
         return static_cast<float> (x);
 }
 
-static std::pair<int, int> rootViewport()
+static std::pair<int, int> viewport()
 {
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
         GLint wh[4];
         glGetIntegerv(GL_VIEWPORT, wh);
 
@@ -198,7 +196,7 @@ static void define2DQuad(Geometry& geometry,
 class Razors
 {
 public:
-        Razors(std::pair<int, int> resolution = rootViewport()) :
+        Razors(std::pair<int, int> resolution = viewport()) :
                 previousFrame(resolution.first, resolution.second),
                 resultFrame(resolution.first, resolution.second)
         {}
@@ -430,7 +428,7 @@ static void seed()
         static struct Seed {
                 Seed()
                 {
-                        auto resolution = rootViewport();
+                        auto resolution = viewport();
 
                         auto plane = 0.0f;
                         for (auto const& texture : textures) {
@@ -491,7 +489,7 @@ RazorsResource makeRazors()
 static void withOutputTo(Framebuffer const& framebuffer,
                          std::function<void()> draw)
 {
-        auto resolution = rootViewport();
+        auto resolution = viewport();
         glBindFramebuffer(GL_FRAMEBUFFER, framebuffer.output.id);
         glDrawBuffer (GL_COLOR_ATTACHMENT0);
         glReadBuffer (GL_COLOR_ATTACHMENT0);
