@@ -46,25 +46,24 @@ static std::vector<char const*> cstrsOf(std::vector<std::string const>& lines)
         return result;
 }
 
-template <typename ResourceType>
-static void innerCompile(ResourceType const& shader,
+static void innerCompile(GLuint id,
                          std::string const& source)
 {
         auto lines = splitLines(source);
         auto cstrs = cstrsOf(lines);
 
-        glShaderSource(shader.id, cstrs.size(), &cstrs.front(), NULL);
-        glCompileShader(shader.id);
+        glShaderSource(id, cstrs.size(), &cstrs.front(), NULL);
+        glCompileShader(id);
 
         GLint status;
-        glGetShaderiv (shader.id, GL_COMPILE_STATUS, &status);
+        glGetShaderiv (id, GL_COMPILE_STATUS, &status);
         if (status == GL_FALSE) {
                 GLint length;
-                glGetShaderiv (shader.id, GL_INFO_LOG_LENGTH, &length);
+                glGetShaderiv (id, GL_INFO_LOG_LENGTH, &length);
 
                 std::vector<char> sinfo;
                 sinfo.reserve(length + 1);
-                glGetShaderInfoLog(shader.id, length, &length, &sinfo.front());
+                glGetShaderInfoLog(id, length, &length, &sinfo.front());
 
                 printf ("ERROR compiling shader [%s] with source [\n", &sinfo.front());
                 printf ("%s", source.c_str());
@@ -75,11 +74,11 @@ static void innerCompile(ResourceType const& shader,
 void compile(VertexShaderResource const& shader,
              std::string const& source)
 {
-        return innerCompile(shader, source);
+        return innerCompile(shader.id, source);
 }
 
 void compile(FragmentShaderResource const& shader,
              std::string const& source)
 {
-        return innerCompile(shader, source);
+        return innerCompile(shader.id, source);
 }
