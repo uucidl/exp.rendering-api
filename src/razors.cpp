@@ -187,7 +187,8 @@ static void drawTriangles(RenderingProgram const& primitive,
                 if (resolutionLoc) {
                         GLint wh[4];
                         glGetIntegerv(GL_VIEWPORT, wh);
-                        glUniform3f(resolutionLoc, wh[2], wh[3], 0.0f);
+                        glUniform3f(resolutionLoc,
+                                    glfloat(wh[2]), glfloat(wh[3]), 0.0f);
                 }
 
                 withVertexArray(primitive.array, [&primitive]() {
