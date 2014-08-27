@@ -19,10 +19,8 @@ END_NOWARN_BLOCK
 
 #include <GL/glew.h>
 
-#include <cstdlib>
 #include <memory>
 #include <string>
-#include <vector>
 
 static const double TAU =
         6.28318530717958647692528676655900576839433879875021;
