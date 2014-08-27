@@ -42,10 +42,12 @@ out vec4 color;
 
 void main()
 {
-vec2 aspectRatioCorrection = vec2(1.0f, 1.0f * iResolution.x / iResolution.y);
+vec2 aspectRatioCorrection = vec2(1.0f, 1.0f * iResolution.y / iResolution.x);
 vec2 center = vec2(0.5f, 0.5f);
-float distance = distance(aspectRatioCorrection * ftexcoord, center);
-float scale = clamp(0.02 / distance / distance * max(1.0, 2.0 - pow(2.0*(distance - 0.22), 2.0)), 0.0, 1.0);
+float delta = distance(aspectRatioCorrection * (ftexcoord - center), vec2(0,0));
+float ring = max(0.0, 1.0 - 1.0/0.004*pow((delta - 0.38), 2.0));
+float halo = 1.0 / (1.0 + delta - 0.4) / (1.0 + delta - 0.4);
+float scale = clamp(halo + ring, 0.0, 1.0);
 color = scale * g_color * texture(tex, ftexcoord);
 }
 )SHADER";
