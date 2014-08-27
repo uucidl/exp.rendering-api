@@ -7,10 +7,10 @@
 
 #include <cstdlib>
 
-void createFramebuffer(FramebufferResource& framebuffer,
-                       TextureResource& framebufferResult,
-                       RenderbufferResource& renderbuffer,
-                       std::pair<int, int> resolution)
+void createImageCaptureFramebuffer(FramebufferResource& framebuffer,
+                                   TextureResource& framebufferResult,
+                                   RenderbufferResource& renderbuffer,
+                                   std::pair<int, int> resolution)
 {
         if (!GLEW_EXT_framebuffer_object) {
                 std::exit(1);

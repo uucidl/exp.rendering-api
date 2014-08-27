@@ -28,9 +28,9 @@ static const double TAU =
 struct Framebuffer {
         Framebuffer(int desiredWidth, int desiredHeight)
         {
-                createFramebuffer(output,
-                                  result,
-                                  depthbuffer,
+                createImageCaptureFramebuffer(output,
+                                              result,
+                                              depthbuffer,
                 { desiredWidth, desiredHeight });
                 width = desiredWidth;
                 height = desiredHeight;

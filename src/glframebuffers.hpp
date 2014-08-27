@@ -15,7 +15,7 @@ class RenderbufferResource;
  * @param framebufferResult the texture to define as the result of the framebuffer
  * @param depthbuffer the render buffer used as the depth buffer
  */
-void createFramebuffer(FramebufferResource& framebuffer,
-                       TextureResource& framebufferResult,
-                       RenderbufferResource& depthbuffer,
-                       std::pair<int, int> resolution);
+void createImageCaptureFramebuffer(FramebufferResource& framebuffer,
+                                   TextureResource& framebufferResult,
+                                   RenderbufferResource& depthbuffer,
+                                   std::pair<int, int> resolution);
