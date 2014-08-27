@@ -5,6 +5,8 @@
 
 #include <GL/glew.h>
 
+#include <cstdlib>
+
 void createFramebuffer(FramebufferResource& framebuffer,
                        TextureResource& framebufferResult,
                        RenderbufferResource& renderbuffer,
