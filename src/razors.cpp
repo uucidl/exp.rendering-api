@@ -297,7 +297,16 @@ static void drawTriangles(RenderingProgram const& primitive,
 {
         withTexture(texture,
         [&primitive]() {
-                glUseProgram(primitive.programId);
+                auto const program = primitive.programId;
+                glUseProgram(program);
+
+                auto const resolutionLoc = glGetUniformLocation(program, "iResolution");
+                if (resolutionLoc) {
+                        GLint wh[4];
+                        glGetIntegerv(GL_VIEWPORT, wh);
+                        glUniform3f(resolutionLoc, wh[2], wh[3], 0.0f);
+                }
+
                 withVertexArray(primitive.array, [&primitive]() {
                         glDrawElements(GL_TRIANGLES, primitive.elementCount, GL_UNSIGNED_INT, 0);
                 });

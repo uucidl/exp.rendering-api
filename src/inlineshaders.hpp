@@ -33,6 +33,7 @@ color = g_color * texture(tex, ftexcoord);
 static std::string projectorFS = R"SHADER(
 #version 150
 
+uniform vec3 iResolution;
 uniform sampler2D tex;
 uniform vec4 g_color;
 
@@ -41,9 +42,10 @@ out vec4 color;
 
 void main()
 {
+vec2 aspectRatioCorrection = vec2(1.0f, 1.0f * iResolution.x / iResolution.y);
 vec2 center = vec2(0.5f, 0.5f);
-float distance = distance(ftexcoord, center);
-float scale = clamp(0.22 / distance / distance * max(1.0, 2.0 - pow(2.0*(distance - 0.22), 2.0)), 0.0, 1.0);
+float distance = distance(aspectRatioCorrection * ftexcoord, center);
+float scale = clamp(0.02 / distance / distance * max(1.0, 2.0 - pow(2.0*(distance - 0.22), 2.0)), 0.0, 1.0);
 color = scale * g_color * texture(tex, ftexcoord);
 }
 )SHADER";
