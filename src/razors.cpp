@@ -352,12 +352,23 @@ static void projectFramebuffer(Framebuffer const& source,
         } all;
 
         if (all.program.id > 0) {
+                // respect source projector's aspect ratio
+                float const yfactor = glfloat(source.height) / glfloat(source.width);
+                define2DQuad(all.quadGeometry,
+                             -1.0f, -yfactor, 2.0f, 2.0f * yfactor,
+                             0.0f, 0.0f, 1.0f, 1.0f);
+
                 GLint colorLoc = glGetUniformLocation(all.program.id, "g_color");
                 GLint transformLoc = glGetUniformLocation(all.program.id, "transform");
 
+                // scale to screen
+                auto resolution = viewport();
+                float const targetYFactor = glfloat(resolution.second) / glfloat(
+                                                    resolution.first);
+
                 float idmatrix[4*4] = {
                         scale, 0.01f, 0.0f, 0.0f,
-                        -0.01f, scale, 0.0f, 0.0f,
+                        -0.01f, scale / targetYFactor, 0.0f, 0.0f,
                         0.0f, 0.0f, scale, 0.0f,
                         0.0f, 0.0f, 0.0f, 1.0f,
                 };
