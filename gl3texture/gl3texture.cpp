@@ -1,13 +1,15 @@
-#include "../src/main_types.h"
-#include "../src/shaders.cpp"
-#include "../src/shader_types.h"
-#include "../src/texture_types.h"
-#include "../src/mesh.h"
-#include "../src/mesh.cpp"
+#include "../ref/mesh.h"
+#include "../ref/mesh.cpp"
+#include "../ref/shaders.cpp"
+#include "../ref/shader_types.h"
+#include "../src/glresource_types.hpp"
+#include "../src/glresources.cpp"
+#include "../src/gltexturing.hpp"
+#include "../src/gltexturing.cpp"
+#include "../src/gldebug.hpp"
 
 #include <micros/api.h>
 #include <GL/glew.h>
-#include "../src/debug.h"
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wmissing-field-initializers"
@@ -107,59 +109,41 @@ extern void render_next_gl3(uint64_t time_micros)
                                 int const height = 64;
                                 OGL_TRACE;
 
-                                uint32_t data[width*height];
-                                for (int y = 0; y < height; y++) {
-                                        for (int x = 0; x < width; x++) {
-                                                uint8_t values[4];
-                                                for (size_t i = 0; i < sizeof values / sizeof values[0]; i++) {
-                                                        float val = 0.5 + stb_perlin_noise3(13.0 * x / width, 17.0 * y / height, 0.0);
-                                                        if (val > 1.0) {
-                                                                val = 1.0;
-                                                        } else if (val < 0.0) {
-                                                                val = 0.0;
-                                                        }
+                                withTexture(noiseTexture,
+                                []() {
+                                        defineNonMipmappedARGB32Texture(width, height, [](uint32_t* data,
+                                        int const width, int const height) {
+                                                for (int y = 0; y < height; y++) {
+                                                        for (int x = 0; x < width; x++) {
+                                                                uint8_t values[4];
+                                                                for (size_t i = 0; i < sizeof values / sizeof values[0]; i++) {
+                                                                        float val = 0.5 + stb_perlin_noise3(13.0 * x / width, 17.0 * y / height, 0.0);
+                                                                        if (val > 1.0) {
+                                                                                val = 1.0;
+                                                                        } else if (val < 0.0) {
+                                                                                val = 0.0;
+                                                                        }
 
-                                                        values[i] = (int) (255 * val) & 0xff;
+                                                                        values[i] = (int) (255 * val) & 0xff;
+                                                                }
+
+
+                                                                data[x + y*width] = (values[0] << 24)
+                                                                                    | (values[1] << 16)
+                                                                                    | (values[2] << 8)
+                                                                                    | values[3];
+                                                        }
                                                 }
 
-
-                                                data[x + y*width] = (values[0] << 24)
-                                                                    | (values[1] << 16)
-                                                                    | (values[2] << 8)
-                                                                    | values[3];
-                                        }
-                                }
-
-                                glActiveTexture(GL_TEXTURE0);
-                                OGL_TRACE;
-                                glBindTexture(GL_TEXTURE_2D, noiseTexture.ref);
-                                OGL_TRACE;
-
-                                glTexImage2D(GL_TEXTURE_2D,
-                                             0,
-                                             GL_RGBA,
-                                             width,
-                                             height,
-                                             0,
-                                             GL_RGBA,
-                                             GL_UNSIGNED_INT_8_8_8_8_REV,
-                                             data);
-#if EITHER_GENERATE_MIPMAP
-                                glGenerateMipmap(GL_TEXTURE_2D);
-#else
-                                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-                                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-#endif
-                                OGL_TRACE;
-                                glBindTexture(GL_TEXTURE_2D, 0);
-                                OGL_TRACE;
+                                        });
+                                });
                         }
 
                 }
 
                 ShaderProgram mainShader;
                 ShaderLoader shader_loader;
-                Texture noiseTexture;
+                TextureResource noiseTexture;
         } resources;
 
         tasks.run();
@@ -174,10 +158,11 @@ extern void render_next_gl3(uint64_t time_micros)
                 OGL_TRACE;
                 glActiveTexture(GL_TEXTURE0);
                 OGL_TRACE;
-                glBindTexture(GL_TEXTURE_2D, resources.noiseTexture.ref);
-                OGL_TRACE;
-                quad.draw();
-                OGL_TRACE;
+
+                withTexture(resources.noiseTexture, [&quad]() {
+                        quad.draw();
+                        OGL_TRACE;
+                });
         }
 }
 
