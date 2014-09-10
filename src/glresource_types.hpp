@@ -7,23 +7,27 @@
 /**
  * Enforce identity semantics for this type name.
  *
- * an object with identity cannot be copied or moved, and must
+ * an object with identity cannot be copied, and must
  * instead be referenced to.
  */
-#define ENFORCE_ID_OBJECT(Typename)                     \
-        private:                                        \
-        Typename(Typename&) = delete;                   \
-        Typename(Typename&&) = delete;                  \
-        Typename& operator=(Typename&) = delete;        \
-        Typename& operator=(Typename&&) = delete;
-
-#define DECLARE_RESOURCE_CLASS(Typename) \
-        ENFORCE_ID_OBJECT(Typename);            \
-        public:                                 \
-        Typename();                             \
-        ~Typename();                            \
-        GLuint id;
-
+#define DECLARE_RESOURCE_CLASS(Typename)                                       \
+      private:                                                                 \
+        Typename(Typename &) = delete;                                         \
+        Typename &operator=(Typename &) = delete;                              \
+      public:                                                                  \
+        GLuint id;                                                             \
+        Typename();                                                            \
+        ~Typename();                                                           \
+        Typename(Typename &&other)                                             \
+        {                                                                      \
+                *this = std::move(other);                                      \
+        }                                                                      \
+        Typename &operator=(Typename &&other)                                  \
+        {                                                                      \
+                id = std::move(other.id);                                      \
+                other.id = 0;                                                  \
+                return *this;                                                  \
+        }
 
 class TextureResource
 {
