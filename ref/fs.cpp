@@ -12,13 +12,7 @@ class FileLoader
 public:
         FileLoader(DisplayThreadTasks& display_tasks, FileSystem& fs) :
                 display_tasks(display_tasks),
-                file_system(fs),
-                is_quitting(false) {}
-
-        ~FileLoader()
-        {
-                is_quitting = true;
-        }
+                file_system(fs) {}
 
         void loadFiles(std::string path1,
                        std::string path2,
@@ -26,19 +20,19 @@ public:
         {
                 auto future_pair = std::async(std::launch::async, [=]() {
                         try {
-                                auto vs = file_system.open_file(path1);
-                                auto fs = file_system.open_file(path2);
-                                std::string vs_content {
-                                        std::istreambuf_iterator<char>(vs),
+                                auto stream1 = file_system.open_file(path1);
+                                auto stream2 = file_system.open_file(path2);
+                                std::string content1 {
+                                        std::istreambuf_iterator<char>(stream1),
                                         std::istreambuf_iterator<char>()
                                 };
-                                std::string fs_content {
-                                        std::istreambuf_iterator<char>(fs),
+                                std::string content2 {
+                                        std::istreambuf_iterator<char>(stream2),
                                         std::istreambuf_iterator<char>()
                                 };
 
                                 display_tasks.add_task([=] () {
-                                        continuation(vs_content, fs_content);
+                                        continuation(content1, content2);
                                         return true;
                                 });
                         } catch (std::exception& e) {
@@ -57,7 +51,6 @@ public:
 private:
         DisplayThreadTasks& display_tasks;
         FileSystem& file_system;
-        std::atomic<bool> is_quitting;
         std::mutex futures_mtx;
         std::vector<std::future<void>> futures;
 };
