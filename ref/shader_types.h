@@ -1,5 +1,7 @@
 #pragma once
 
+#include "main_types.h"
+
 #include <GL/glew.h>
 
 #include <future>
@@ -34,25 +36,15 @@ class ShaderLoader
 {
 public:
         ShaderLoader(DisplayThreadTasks& display_tasks, FileSystem& fs) :
-                display_tasks(display_tasks),
-                file_system(fs),
-                is_quitting(false) {}
-
-        ~ShaderLoader()
-        {
-                is_quitting = true;
-        }
+                fileLoader(makeFileLoader(fs, display_tasks))
+        {}
 
         void load_shader(std::string vs_path,
                          std::string fs_path,
                          std::function<void(ShaderProgram&&)> bind_shader);
 
 private:
-        DisplayThreadTasks& display_tasks;
-        FileSystem& file_system;
-        std::atomic<bool> is_quitting;
-        std::mutex futures_mtx;
-        std::vector<std::future<void>> futures;
+        FileLoaderResource fileLoader;
 };
 
 class WithShaderProgramScope

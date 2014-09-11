@@ -2,6 +2,7 @@
 #include "../ref/mesh.cpp"
 #include "../ref/shaders.cpp"
 #include "../ref/shader_types.h"
+#include "../ref/fs.cpp"
 #include "../src/glresource_types.hpp"
 #include "../src/glresources.cpp"
 #include "../src/gltexturing.hpp"
