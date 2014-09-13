@@ -1,13 +1,10 @@
+#include "../ref/main_types.h"
 #include "../ref/mesh.h"
-#include "../ref/mesh.cpp"
-#include "../ref/shaders.cpp"
 #include "../ref/shader_types.h"
-#include "../ref/fs.cpp"
 #include "../src/glresource_types.hpp"
-#include "../src/glresources.cpp"
 #include "../src/gltexturing.hpp"
-#include "../src/gltexturing.cpp"
 #include "../src/gldebug.hpp"
+#include "../src/glshaders.hpp"
 
 #include <micros/api.h>
 #include <GL/glew.h>
@@ -35,6 +32,33 @@ extern void render_next_2chn_48khz_audio(uint64_t time_micros,
                 double right[/*sample_count*/])
 {
         // silence is soothing
+}
+
+struct SimpleShaderProgram : public ShaderProgramResource {
+        VertexShaderResource vertexShader;
+        FragmentShaderResource fragmentShader;
+};
+
+static void defineProgram(SimpleShaderProgram& program,
+                          std::string const& vertexShaderSource,
+                          std::string const& fragmentShaderSource)
+{
+        compile(program.vertexShader, vertexShaderSource);
+        compile(program.fragmentShader, fragmentShaderSource);
+
+        glAttachShader(program.id, program.vertexShader.id);
+        glAttachShader(program.id, program.fragmentShader.id);
+        glLinkProgram(program.id);
+}
+
+static void bindUniforms(GLuint programId)
+{
+        GLint texture1Loc = glGetUniformLocation(programId,
+                            "tex0");
+        GLint texture2Loc = glGetUniformLocation(programId,
+                            "tex1");
+        glUniform1i(texture1Loc, 0); // bind to texture unit 0
+        glUniform1i(texture2Loc, 1); // bind to texture unit 0
 }
 
 extern void render_next_gl3(uint64_t time_micros)
@@ -83,27 +107,22 @@ extern void render_next_gl3(uint64_t time_micros)
         } srcFileSystem;
 
         static struct Resources {
-                Resources() : shader_loader(tasks, srcFileSystem)
+                Resources() :
+                        fileLoader(makeFileLoader(srcFileSystem, tasks)),
+                        shader_loader(tasks, srcFileSystem)
                 {
                         shader_loader.load_shader("main.vs", "main.fs", [=](ShaderProgram&& input) {
                                 OGL_TRACE;
                                 WithShaderProgramScope withShader(input);
                                 OGL_TRACE;
-
-                                GLint texture1Loc = glGetUniformLocation(input.ref(),
-                                                    "tex0");
-                                GLint texture2Loc = glGetUniformLocation(input.ref(),
-                                                    "tex1");
-                                OGL_TRACE;
-
-                                glUniform1i(texture1Loc, 0); // bind to texture unit 0
-                                OGL_TRACE;
-                                glUniform1i(texture2Loc, 1); // bind to texture unit 0
-                                OGL_TRACE;
-                                glLinkProgram(input.ref());
-                                OGL_TRACE;
                                 mainShader = std::move(input);
                         });
+
+                        loadFilePair(*fileLoader.get(), "main.vs",
+                        "main.fs", [=](std::string const& contentVS, std::string const& contentFS) {
+                                defineProgram(mainShader2, contentVS, contentFS);
+                        });
+
 
                         {
                                 int const width = 64;
@@ -143,6 +162,8 @@ extern void render_next_gl3(uint64_t time_micros)
                 }
 
                 ShaderProgram mainShader;
+                SimpleShaderProgram mainShader2;
+                FileLoaderResource fileLoader;
                 ShaderLoader shader_loader;
                 TextureResource noiseTexture;
         } resources;
@@ -155,6 +176,12 @@ extern void render_next_gl3(uint64_t time_micros)
                                -1.0, -1.0, 2.0, 2.0,
                                0.0, 0.0, 1.0, 1.0);
                 OGL_TRACE;
+
+                {
+                        WithShaderProgramScope withShader(resources.mainShader);
+                        bindUniforms(resources.mainShader.ref());
+                }
+
                 quad.bind(resources.mainShader);
                 OGL_TRACE;
                 glActiveTexture(GL_TEXTURE0);
@@ -173,3 +200,12 @@ int main()
 
         return 0;
 }
+
+// implementations
+
+#include "../ref/fs.cpp"
+#include "../ref/mesh.cpp"
+#include "../ref/shaders.cpp"
+#include "../src/glresources.cpp"
+#include "../src/glshaders.cpp"
+#include "../src/gltexturing.cpp"
