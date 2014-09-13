@@ -11,9 +11,7 @@
 
 BEGIN_NOWARN_BLOCK
 
-#  define STB_PERLIN_IMPLEMENTATION
-#  include "stb_perlin.h"
-#  undef STB_PERLIN_IMPLEMENTATION
+#include "stb_perlin.h"
 
 END_NOWARN_BLOCK
 
@@ -21,6 +19,7 @@ END_NOWARN_BLOCK
 
 #include <memory>
 #include <string>
+#include <cmath>
 
 static const double TAU =
         6.28318530717958647692528676655900576839433879875021;
