@@ -42,16 +42,26 @@ static void defineProgram(SimpleShaderProgram& program,
         glLinkProgram(program.id);
 }
 
-static void bindUniforms(GLuint programId)
+struct MainShaderVariables {
+        GLint textureUniforms[2];
+        GLint positionAttrib;
+        GLint texcoordAttrib;
+};
+
+static MainShaderVariables getMainShaderVariables(ShaderProgramResource const&
+                program)
 {
-        glUseProgram(programId);
-        GLint texture1Loc = glGetUniformLocation(programId,
-                            "tex0");
-        GLint texture2Loc = glGetUniformLocation(programId,
-                            "tex1");
-        glUniform1i(texture1Loc, 0); // bind to texture unit 0
-        glUniform1i(texture2Loc, 1); // bind to texture unit 0
-        glUseProgram(0);
+        auto const id = program.id;
+        MainShaderVariables variables = {
+                {
+                        glGetUniformLocation(id, "tex0"),
+                        glGetUniformLocation(id, "tex1")
+                },
+                glGetAttribLocation(program.id, "position"),
+                glGetAttribLocation(program.id, "texcoord")
+        };
+
+        return variables;
 }
 
 extern void render_next_gl3(uint64_t time_micros)
@@ -106,6 +116,14 @@ extern void render_next_gl3(uint64_t time_micros)
                         loadFilePair(*fileLoader.get(), "main.vs",
                         "main.fs", [=](std::string const& contentVS, std::string const& contentFS) {
                                 defineProgram(mainShader, contentVS, contentFS);
+                                mainShaderVars = getMainShaderVariables(mainShader);
+
+                                withShaderProgram(mainShader, [=]() {
+                                        // bind to texture units 0 and 1
+                                        glUniform1i(mainShaderVars.textureUniforms[0], 0);
+                                        glUniform1i(mainShaderVars.textureUniforms[1], 1);
+
+                                });
                         });
 
 
@@ -147,6 +165,7 @@ extern void render_next_gl3(uint64_t time_micros)
                 }
 
                 SimpleShaderProgram mainShader;
+                MainShaderVariables mainShaderVars;
                 FileLoaderResource fileLoader;
                 TextureResource noiseTexture;
         } resources;
@@ -155,18 +174,15 @@ extern void render_next_gl3(uint64_t time_micros)
 
         auto const& program = resources.mainShader;
         if (program.id > 0) {
+                auto const& vars = resources.mainShaderVars;
+
                 Mesh quad;
                 quad.defQuad2d(0,
                                -1.0, -1.0, 2.0, 2.0,
                                0.0, 0.0, 1.0, 1.0);
                 OGL_TRACE;
 
-                bindUniforms(program.id);
-
-                GLuint position_attrib = glGetAttribLocation(program.id, "position");
-                GLuint texcoord_attrib = glGetAttribLocation(program.id, "texcoord");
-
-                quad.bind(position_attrib, texcoord_attrib);
+                quad.bind(vars.positionAttrib, vars.texcoordAttrib);
 
                 withShaderProgram(program, [&quad]() {
                         withTexture(resources.noiseTexture, [&quad]() {
