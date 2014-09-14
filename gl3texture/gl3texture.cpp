@@ -65,8 +65,25 @@ static MainShaderVariables getMainShaderVariables(ShaderProgramResource const&
         return variables;
 }
 
-static void define2dQuadBuffer(BufferResource const& buffer, float xmin,
-                               float ymin, float width, float height)
+static size_t define2dQuadIndices(BufferResource const& buffer)
+{
+        size_t count = 0;
+        withElementBuffer(buffer,
+        [&count]() {
+                GLuint data[] = {
+                        0, 1, 2, 2, 3, 0,
+                };
+                count = sizeof data / sizeof data[0];
+
+                glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof data, data,
+                             GL_STREAM_DRAW);
+        });
+
+        return count;
+}
+
+static GLvoid* define2dQuadBuffer(BufferResource const& buffer, float xmin,
+                                  float ymin, float width, float height)
 {
         withArrayBuffer(buffer,
         [=]() {
@@ -79,6 +96,8 @@ static void define2dQuadBuffer(BufferResource const& buffer, float xmin,
 
                 glBufferData(GL_ARRAY_BUFFER, sizeof data, data, GL_STREAM_DRAW);
         });
+
+        return 0;
 }
 
 extern void render_next_gl3(uint64_t time_micros)
@@ -131,19 +150,9 @@ extern void render_next_gl3(uint64_t time_micros)
                         fileLoader(makeFileLoader(srcFileSystem, tasks))
                 {
                         {
-                                withElementBuffer(indices,
-                                [=]() {
-                                        GLuint data[] = {
-                                                0, 1, 2, 2, 3, 0,
-                                        };
-                                        indicesCount = sizeof data / sizeof data[0];
-
-                                        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof data, data,
-                                                     GL_STREAM_DRAW);
-                                });
-
-                                define2dQuadBuffer(vertices, -1.0, -1.0, 2.0, 2.0);
-                                define2dQuadBuffer(texcoords, 0.0, 0.0, 1.0, 1.0);
+                                indicesCount = define2dQuadIndices(indices);
+                                quadPositionOffset = define2dQuadBuffer(vertices, -1.0, -1.0, 2.0, 2.0);
+                                quadTexcoordsOffset = define2dQuadBuffer(texcoords, 0.0, 0.0, 1.0, 1.0);
                         }
 
                         loadFilePair(*fileLoader.get(), "main.vs",
@@ -160,10 +169,10 @@ extern void render_next_gl3(uint64_t time_micros)
                                 withVertexArray(vertexArray, [=]() {
                                         glBindBuffer(GL_ARRAY_BUFFER, texcoords.id);
                                         glVertexAttribPointer(mainShaderVars.texcoordAttrib, 2, GL_FLOAT, GL_FALSE, 0,
-                                                              0);
+                                                              quadTexcoordsOffset);
                                         glBindBuffer(GL_ARRAY_BUFFER, vertices.id);
                                         glVertexAttribPointer(mainShaderVars.positionAttrib, 2, GL_FLOAT, GL_FALSE, 0,
-                                                              0);
+                                                              quadPositionOffset);
 
                                         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indices.id);
                                         glEnableVertexAttribArray(mainShaderVars.texcoordAttrib);
@@ -218,6 +227,9 @@ extern void render_next_gl3(uint64_t time_micros)
                 BufferResource indices;
                 BufferResource vertices;
                 BufferResource texcoords;
+
+                GLvoid* quadPositionOffset;
+                GLvoid* quadTexcoordsOffset;
         } resources;
 
         tasks.run();
