@@ -100,6 +100,25 @@ static GLvoid* define2dQuadBuffer(BufferResource const& buffer, float xmin,
         return 0;
 }
 
+static void define2dTrianglesVertexArray(BufferResource const& indices,
+                GLint positionAttrib, BufferResource const& positions,
+                GLvoid* positionsOffset,
+                GLint texcoordAttrib, BufferResource const& texcoords,
+                GLvoid* texcoordsOffset)
+{
+        glBindBuffer(GL_ARRAY_BUFFER, texcoords.id);
+        glVertexAttribPointer(texcoordAttrib, 2, GL_FLOAT, GL_FALSE, 0,
+                              texcoordsOffset);
+
+        glBindBuffer(GL_ARRAY_BUFFER, positions.id);
+        glVertexAttribPointer(positionAttrib, 2, GL_FLOAT, GL_FALSE, 0,
+                              positionsOffset);
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indices.id);
+        glEnableVertexAttribArray(texcoordAttrib);
+        glEnableVertexAttribArray(positionAttrib);
+}
+
 extern void render_next_gl3(uint64_t time_micros)
 {
         static class Tasks : public DisplayThreadTasks
@@ -167,16 +186,10 @@ extern void render_next_gl3(uint64_t time_micros)
                                 });
 
                                 withVertexArray(vertexArray, [=]() {
-                                        glBindBuffer(GL_ARRAY_BUFFER, texcoords.id);
-                                        glVertexAttribPointer(mainShaderVars.texcoordAttrib, 2, GL_FLOAT, GL_FALSE, 0,
-                                                              quadTexcoordsOffset);
-                                        glBindBuffer(GL_ARRAY_BUFFER, vertices.id);
-                                        glVertexAttribPointer(mainShaderVars.positionAttrib, 2, GL_FLOAT, GL_FALSE, 0,
-                                                              quadPositionOffset);
-
-                                        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indices.id);
-                                        glEnableVertexAttribArray(mainShaderVars.texcoordAttrib);
-                                        glEnableVertexAttribArray(mainShaderVars.positionAttrib);
+                                        define2dTrianglesVertexArray
+                                        (indices,
+                                         mainShaderVars.positionAttrib, vertices, quadPositionOffset,
+                                         mainShaderVars.texcoordAttrib, texcoords, quadTexcoordsOffset);
                                         validate(mainShader);
                                 });
                         });
