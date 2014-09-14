@@ -1,5 +1,4 @@
 #include "../ref/main_types.h"
-#include "../ref/mesh.h"
 #include "../src/glresource_types.hpp"
 #include "../src/gltexturing.hpp"
 #include "../src/gldebug.hpp"
@@ -66,6 +65,22 @@ static MainShaderVariables getMainShaderVariables(ShaderProgramResource const&
         return variables;
 }
 
+static void define2dQuadBuffer(BufferResource const& buffer, float xmin,
+                               float ymin, float width, float height)
+{
+        withArrayBuffer(buffer,
+        [=]() {
+                float data[] = {
+                        xmin, ymin,
+                        xmin, ymin + height,
+                        xmin + width, ymin + height,
+                        xmin + width, ymin,
+                };
+
+                glBufferData(GL_ARRAY_BUFFER, sizeof data, data, GL_STREAM_DRAW);
+        });
+}
+
 extern void render_next_gl3(uint64_t time_micros)
 {
         static class Tasks : public DisplayThreadTasks
@@ -115,6 +130,22 @@ extern void render_next_gl3(uint64_t time_micros)
                 Resources() :
                         fileLoader(makeFileLoader(srcFileSystem, tasks))
                 {
+                        {
+                                withElementBuffer(indices,
+                                [=]() {
+                                        GLuint data[] = {
+                                                0, 1, 2, 2, 3, 0,
+                                        };
+                                        indicesCount = sizeof data / sizeof data[0];
+
+                                        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof data, data,
+                                                     GL_STREAM_DRAW);
+                                });
+
+                                define2dQuadBuffer(vertices, -1.0, -1.0, 2.0, 2.0);
+                                define2dQuadBuffer(texcoords, 0.0, 0.0, 1.0, 1.0);
+                        }
+
                         loadFilePair(*fileLoader.get(), "main.vs",
                         "main.fs", [=](std::string const& contentVS, std::string const& contentFS) {
                                 defineProgram(mainShader, contentVS, contentFS);
@@ -124,17 +155,29 @@ extern void render_next_gl3(uint64_t time_micros)
                                         // bind to texture units 0 and 1
                                         glUniform1i(mainShaderVars.textureUniforms[0], 0);
                                         glUniform1i(mainShaderVars.textureUniforms[1], 1);
+                                });
 
+                                withVertexArray(vertexArray, [=]() {
+                                        glBindBuffer(GL_ARRAY_BUFFER, texcoords.id);
+                                        glVertexAttribPointer(mainShaderVars.texcoordAttrib, 2, GL_FLOAT, GL_FALSE, 0,
+                                                              0);
+                                        glBindBuffer(GL_ARRAY_BUFFER, vertices.id);
+                                        glVertexAttribPointer(mainShaderVars.positionAttrib, 2, GL_FLOAT, GL_FALSE, 0,
+                                                              0);
+
+                                        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indices.id);
+                                        glEnableVertexAttribArray(mainShaderVars.texcoordAttrib);
+                                        glEnableVertexAttribArray(mainShaderVars.positionAttrib);
+                                        validate(mainShader);
                                 });
                         });
-
 
                         {
                                 int const width = 64;
                                 int const height = 64;
                                 OGL_TRACE;
 
-                                withTexture(noiseTexture,
+                                withTexture(quadTexture,
                                 []() {
                                         defineNonMipmappedARGB32Texture(width, height, [](uint32_t* data,
                                         int const width, int const height) {
@@ -163,32 +206,29 @@ extern void render_next_gl3(uint64_t time_micros)
                                         });
                                 });
                         }
-
                 }
 
                 SimpleShaderProgram mainShader;
                 MainShaderVariables mainShaderVars;
                 FileLoaderResource fileLoader;
-                TextureResource noiseTexture;
+
+                TextureResource quadTexture;
+                size_t indicesCount;
+                VertexArrayResource vertexArray;
+                BufferResource indices;
+                BufferResource vertices;
+                BufferResource texcoords;
         } resources;
 
         tasks.run();
 
         auto const& program = resources.mainShader;
         if (program.id > 0) {
-                auto const& vars = resources.mainShaderVars;
-
-                Mesh quad;
-                quad.defQuad2d(0,
-                               -1.0, -1.0, 2.0, 2.0,
-                               0.0, 0.0, 1.0, 1.0);
-                OGL_TRACE;
-
-                quad.bind(vars.positionAttrib, vars.texcoordAttrib);
-
-                withShaderProgram(program, [&quad]() {
-                        withTexture(resources.noiseTexture, [&quad]() {
-                                quad.draw();
+                withShaderProgram(program, []() {
+                        withTexture(resources.quadTexture, []() {
+                                withVertexArray(resources.vertexArray, []() {
+                                        glDrawElements(GL_TRIANGLES, resources.indicesCount, GL_UNSIGNED_INT, 0);
+                                });
                         });
                 });
         }
