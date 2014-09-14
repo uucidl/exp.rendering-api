@@ -44,12 +44,14 @@ static void defineProgram(SimpleShaderProgram& program,
 
 static void bindUniforms(GLuint programId)
 {
+        glUseProgram(programId);
         GLint texture1Loc = glGetUniformLocation(programId,
                             "tex0");
         GLint texture2Loc = glGetUniformLocation(programId,
                             "tex1");
         glUniform1i(texture1Loc, 0); // bind to texture unit 0
         glUniform1i(texture2Loc, 1); // bind to texture unit 0
+        glUseProgram(0);
 }
 
 extern void render_next_gl3(uint64_t time_micros)
@@ -99,19 +101,11 @@ extern void render_next_gl3(uint64_t time_micros)
 
         static struct Resources {
                 Resources() :
-                        fileLoader(makeFileLoader(srcFileSystem, tasks)),
-                        shader_loader(tasks, srcFileSystem)
+                        fileLoader(makeFileLoader(srcFileSystem, tasks))
                 {
-                        shader_loader.load_shader("main.vs", "main.fs", [=](ShaderProgram&& input) {
-                                OGL_TRACE;
-                                WithShaderProgramScope withShader(input);
-                                OGL_TRACE;
-                                mainShader = std::move(input);
-                        });
-
                         loadFilePair(*fileLoader.get(), "main.vs",
                         "main.fs", [=](std::string const& contentVS, std::string const& contentFS) {
-                                defineProgram(mainShader2, contentVS, contentFS);
+                                defineProgram(mainShader, contentVS, contentFS);
                         });
 
 
@@ -152,43 +146,32 @@ extern void render_next_gl3(uint64_t time_micros)
 
                 }
 
-                ShaderProgram mainShader;
-                SimpleShaderProgram mainShader2;
+                SimpleShaderProgram mainShader;
                 FileLoaderResource fileLoader;
-                ShaderLoader shader_loader;
                 TextureResource noiseTexture;
         } resources;
 
         tasks.run();
 
-        if (resources.mainShader.ref() > 0) {
+        auto const& program = resources.mainShader;
+        if (program.id > 0) {
                 Mesh quad;
                 quad.defQuad2d(0,
                                -1.0, -1.0, 2.0, 2.0,
                                0.0, 0.0, 1.0, 1.0);
                 OGL_TRACE;
 
-                {
-                        WithShaderProgramScope withShader(resources.mainShader);
-                        bindUniforms(resources.mainShader.ref());
-                }
+                bindUniforms(program.id);
 
-                {
-                        auto program = resources.mainShader.ref();
-                        GLuint position_attrib = glGetAttribLocation(program, "position");
-                        GLuint texcoord_attrib = glGetAttribLocation(program, "texcoord");
+                GLuint position_attrib = glGetAttribLocation(program.id, "position");
+                GLuint texcoord_attrib = glGetAttribLocation(program.id, "texcoord");
 
-                        quad.bind(position_attrib, texcoord_attrib);
-                }
-                OGL_TRACE;
-                glActiveTexture(GL_TEXTURE0);
-                OGL_TRACE;
+                quad.bind(position_attrib, texcoord_attrib);
 
-                withTexture(resources.noiseTexture, [&quad]() {
-                        auto program = resources.mainShader.ref();
-                        glUseProgram(program);
-                        quad.draw();
-                        glUseProgram(0);
+                withShaderProgram(program, [&quad]() {
+                        withTexture(resources.noiseTexture, [&quad]() {
+                                quad.draw();
+                        });
                 });
         }
 }
