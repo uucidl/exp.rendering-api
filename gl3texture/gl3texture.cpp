@@ -1,6 +1,5 @@
 #include "../ref/main_types.h"
 #include "../ref/mesh.h"
-#include "../ref/shader_types.h"
 #include "../src/glresource_types.hpp"
 #include "../src/gltexturing.hpp"
 #include "../src/gldebug.hpp"
@@ -12,6 +11,9 @@
 #include "stb_image_write.h"
 
 #include <GL/glew.h>
+
+#include <vector>
+#include <future>
 
 static std::string dirname(std::string path)
 {

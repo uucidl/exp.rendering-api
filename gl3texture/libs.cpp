@@ -2,7 +2,6 @@
 
 #include "../ref/fs.cpp"
 #include "../ref/mesh.cpp"
-#include "../ref/shaders.cpp"
 #include "../src/glresources.cpp"
 #include "../src/glshaders.cpp"
 #include "../src/gltexturing.cpp"
