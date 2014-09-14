@@ -43,10 +43,10 @@ struct Framebuffer {
 };
 
 struct Geometry {
+        size_t indicesCount;
+        BufferResource indices;
         BufferResource vertices;
         BufferResource texcoords;
-        BufferResource indices;
-        size_t indicesCount;
 };
 
 // as a sequence of triangles
@@ -56,6 +56,18 @@ static void define2dQuadTriangles(Geometry& geometry,
                                   float umin, float vmin,
                                   float umax, float vmax)
 {
+        GLuint indices[] = {
+                0, 1, 2, 2, 3, 0,
+        };
+
+        geometry.indicesCount = sizeof indices / sizeof indices[0];
+
+        withElementBuffer(geometry.indices,
+        [&indices]() {
+                glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof indices, indices,
+                             GL_STREAM_DRAW);
+        });
+
         withArrayBuffer(geometry.vertices,
         [=]() {
                 float vertices[] = {
@@ -79,18 +91,6 @@ static void define2dQuadTriangles(Geometry& geometry,
 
                 glBufferData(GL_ARRAY_BUFFER, sizeof texcoords, texcoords, GL_STREAM_DRAW);
 
-        });
-
-        GLuint indices[] = {
-                0, 1, 2, 2, 3, 0,
-        };
-
-        geometry.indicesCount = sizeof indices / sizeof indices[0];
-
-        withElementBuffer(geometry.indices,
-        [&indices]() {
-                glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof indices, indices,
-                             GL_STREAM_DRAW);
         });
 }
 
@@ -274,14 +274,14 @@ static void seed()
                                 plane += 0.9f;
                         }
 
-                        define2dQuadTriangles(quadGeometry, -1.0, -1.0, 2.0, 2.0, 0.0, 0.0, 1.0, 1.0);
+                        define2dQuadTriangles(quadTris, -1.0, -1.0, 2.0, 2.0, 0.0, 0.0, 1.0, 1.0);
                         defineProgram(program, defaultVS, defaultFS);
 
-                        defineRenderingProgram(texturedQuad, program, quadGeometry);
+                        defineRenderingProgram(texturedQuad, program, quadTris);
                 };
 
                 TextureResource textures[4];
-                Geometry quadGeometry;
+                Geometry quadTris;
                 SimpleShaderProgram program;
                 RenderingProgram texturedQuad;
         } all;
