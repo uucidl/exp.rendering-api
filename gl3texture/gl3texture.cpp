@@ -7,20 +7,11 @@
 #include "../src/glshaders.hpp"
 
 #include <micros/api.h>
-#include <GL/glew.h>
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wmissing-field-initializers"
-
-#define STB_PERLIN_IMPLEMENTATION
 #include "stb_perlin.h"
-#undef STB_PERLIN_IMPLEMENTATION
-
-#define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
-#undef STB_IMAGE_WRITE_IMPLEMENTATION
 
-#pragma clang diagnostic pop
+#include <GL/glew.h>
 
 static std::string dirname(std::string path)
 {
@@ -208,12 +199,3 @@ int main()
 
         return 0;
 }
-
-// implementations
-
-#include "../ref/fs.cpp"
-#include "../ref/mesh.cpp"
-#include "../ref/shaders.cpp"
-#include "../src/glresources.cpp"
-#include "../src/glshaders.cpp"
-#include "../src/gltexturing.cpp"
