@@ -2,16 +2,18 @@
 
 #include "objects.hh"
 
+#include <GL/glew.h>
+
 class MeshImpl;
 class DisplayFrameImpl;
-class ShaderProgram;
 
 #include <memory>
 
 std::unique_ptr<MeshImpl, void (*)(MeshImpl*)> mesh_make();
 void mesh_defquad2d (MeshImpl* g, int flags, float x, float y, float w,
                      float h, float umin, float vmin, float umax, float vmax);
-void mesh_bind(MeshImpl* self, ShaderProgram const& program);
+void mesh_bind(MeshImpl* self, GLuint positionAttribLoc,
+               GLuint texcoordAttribLoc);
 void mesh_draw(MeshImpl* self);
 
 class Mesh
@@ -26,9 +28,9 @@ public:
                 mesh_defquad2d(impl.get(), flags, x, y, w, h, umin, vmin, umax, vmax);
         }
 
-        void bind(ShaderProgram const& program)
+        void bind(GLuint positionAttribLoc, GLuint texcoordAttribLoc)
         {
-                mesh_bind(impl.get(), program);
+                mesh_bind(impl.get(), positionAttribLoc, texcoordAttribLoc);
         }
 
         void draw()

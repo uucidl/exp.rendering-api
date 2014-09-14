@@ -182,14 +182,22 @@ extern void render_next_gl3(uint64_t time_micros)
                         bindUniforms(resources.mainShader.ref());
                 }
 
-                quad.bind(resources.mainShader);
+                {
+                        auto program = resources.mainShader.ref();
+                        GLuint position_attrib = glGetAttribLocation(program, "position");
+                        GLuint texcoord_attrib = glGetAttribLocation(program, "texcoord");
+
+                        quad.bind(position_attrib, texcoord_attrib);
+                }
                 OGL_TRACE;
                 glActiveTexture(GL_TEXTURE0);
                 OGL_TRACE;
 
                 withTexture(resources.noiseTexture, [&quad]() {
+                        auto program = resources.mainShader.ref();
+                        glUseProgram(program);
                         quad.draw();
-                        OGL_TRACE;
+                        glUseProgram(0);
                 });
         }
 }

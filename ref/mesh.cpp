@@ -68,32 +68,24 @@ void mesh_defquad2d (MeshImpl* g, int flags,
 
 }
 
-void mesh_bind(MeshImpl* self, ShaderProgram const& shader)
+void mesh_bind(MeshImpl* self, GLuint positionAttribLoc,
+               GLuint texcoordAttribLoc)
 {
-        self->programRef = shader.ref();
-
-        GLuint position_attrib = glGetAttribLocation(self->programRef, "position");
-        GLuint texcoord_attrib = glGetAttribLocation(self->programRef, "texcoord");
-
         WithVertexArrayScope withVertexArray(self->array);
 
         glBindBuffer(GL_ARRAY_BUFFER, self->texcoords.ref);
-        glVertexAttribPointer(texcoord_attrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
+        glVertexAttribPointer(texcoordAttribLoc, 2, GL_FLOAT, GL_FALSE, 0, 0);
 
         glBindBuffer(GL_ARRAY_BUFFER, self->vertices.ref);
-        glVertexAttribPointer(position_attrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
+        glVertexAttribPointer(positionAttribLoc, 2, GL_FLOAT, GL_FALSE, 0, 0);
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self->indices.ref);
-        glEnableVertexAttribArray(position_attrib);
-        glEnableVertexAttribArray(texcoord_attrib);
-
-        shader.validate();
+        glEnableVertexAttribArray(positionAttribLoc);
+        glEnableVertexAttribArray(texcoordAttribLoc);
 }
 
 void mesh_draw(MeshImpl* self)
 {
-        glUseProgram(self->programRef);
         WithVertexArrayScope withVertexArray(self->array);
         glDrawElements(GL_TRIANGLES, self->indices_n, GL_UNSIGNED_INT, 0);
-        glUseProgram(0);
 }

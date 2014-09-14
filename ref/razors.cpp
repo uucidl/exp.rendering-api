@@ -92,8 +92,14 @@ static void rdq (display_frame_t frame,
                 glClear (GL_COLOR_BUFFER_BIT);
         }
 
-        quad.bind(shader);
+        auto position_attrib = glGetAttribLocation(shader.ref(), "position");
+        auto texcoord_attrib = glGetAttribLocation(shader.ref(), "texcoord");
+
+        quad.bind(position_attrib, texcoord_attrib);
+
+        glUseProgram(shader.ref());
         quad.draw();
+        glUseProgram(0);
         OGL_TRACE;
 }
 
@@ -196,9 +202,14 @@ void razors(display_frame_t frame,
 
                                 {
                                         WithMaterialOn material(blacken);
-                                        quad.bind(shader);
+                                        auto position_attrib = glGetAttribLocation(shader.ref(), "position");
+                                        auto texcoord_attrib = glGetAttribLocation(shader.ref(), "texcoord");
 
+                                        quad.bind(position_attrib, texcoord_attrib);
+
+                                        glUseProgram(shader.ref());
                                         quad.draw();
+                                        glUseProgram(0);
                                 }
                         }
                 });
@@ -235,8 +246,14 @@ void razors(display_frame_t frame,
                                 quad.defQuad2d(0, -1.0f, 1.0f, 2.0f, -2.0f,
                                                0.0f, 0.0f, uv[0], uv[1]);
 
-                                quad.bind(seedshader);
+                                auto position_attrib = glGetAttribLocation(seedshader.ref(), "position");
+                                auto texcoord_attrib = glGetAttribLocation(seedshader.ref(), "texcoord");
+                                quad.bind(position_attrib, texcoord_attrib);
+
+                                glUseProgram(seedshader.ref());
+
                                 quad.draw();
+                                glUseProgram(0);
                         });
                 }
         }
