@@ -50,11 +50,11 @@ struct Geometry {
 };
 
 // as a sequence of triangles
-static void define2DQuad(Geometry& geometry,
-                         float x, float y,
-                         float width, float height,
-                         float umin, float vmin,
-                         float umax, float vmax)
+static void define2dQuadTriangles(Geometry& geometry,
+                                  float x, float y,
+                                  float width, float height,
+                                  float umin, float vmin,
+                                  float umax, float vmax)
 {
         withArrayBuffer(geometry.vertices,
         [=]() {
@@ -274,7 +274,7 @@ static void seed()
                                 plane += 0.9f;
                         }
 
-                        define2DQuad(quadGeometry, -1.0, -1.0, 2.0, 2.0, 0.0, 0.0, 1.0, 1.0);
+                        define2dQuadTriangles(quadGeometry, -1.0, -1.0, 2.0, 2.0, 0.0, 0.0, 1.0, 1.0);
                         defineProgram(program, defaultVS, defaultFS);
 
                         defineRenderingProgram(texturedQuad, program, quadGeometry);
@@ -339,7 +339,8 @@ static void projectFramebuffer(Framebuffer const& source,
         static struct Projector {
                 Projector ()
                 {
-                        define2DQuad(quadGeometry,  -1.0, -1.0, 2.0, 2.0, 0.0, 0.0, 1.0, 1.0);
+                        define2dQuadTriangles(quadGeometry,  -1.0, -1.0, 2.0, 2.0, 0.0, 0.0, 1.0,
+                                              1.0);
                         defineProgram(program, defaultVS, projectorFS);
 
                         defineRenderingProgram(texturedQuad, program, quadGeometry);
@@ -353,9 +354,9 @@ static void projectFramebuffer(Framebuffer const& source,
         if (all.program.id > 0) {
                 // respect source projector's aspect ratio
                 float const yfactor = glfloat(source.height) / glfloat(source.width);
-                define2DQuad(all.quadGeometry,
-                             -1.0f, -yfactor, 2.0f, 2.0f * yfactor,
-                             0.0f, 0.0f, 1.0f, 1.0f);
+                define2dQuadTriangles(all.quadGeometry,
+                                      -1.0f, -yfactor, 2.0f, 2.0f * yfactor,
+                                      0.0f, 0.0f, 1.0f, 1.0f);
 
                 GLint colorLoc = glGetUniformLocation(all.program.id, "g_color");
                 GLint transformLoc = glGetUniformLocation(all.program.id, "transform");
