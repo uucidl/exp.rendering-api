@@ -292,10 +292,10 @@ static void seed()
                 withPremultipliedAlphaBlending
                 ([&] () {
                         auto colorLoc = glGetUniformLocation(all.program.id, "g_color");
-                        auto period = 24;
+                        auto period = 29;
                         withShaderProgram(all.program, [=]() {
                                 auto origin = period*(i/period);
-                                auto maxAlpha = 0.09f;
+                                auto maxAlpha = 0.12f;
                                 auto const alpha = maxAlpha * sin(TAU * (i - origin)/(2.0 * period));
                                 glUniform4f(colorLoc,
                                             glfloat(alpha*1.0),
@@ -391,13 +391,13 @@ void draw(Razors& self, double ms)
                 clear();
                 projectFramebuffer(self.resultFrame,
                                    glfloat(0.990f + 0.010f * sin(TAU * ms / 5000.0)));
+                seed();
         });
 
         withOutputTo(self.resultFrame,
         [&self] () {
                 clear();
                 projectFramebuffer(self.previousFrame, 1.004f);
-                seed();
         });
 
         clear();
