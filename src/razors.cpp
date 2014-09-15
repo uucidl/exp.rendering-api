@@ -253,8 +253,14 @@ static int nextPowerOfTwo(int number)
         return static_cast<int> (pow(2.0, ceil(log2(number))));
 }
 
-static void seed()
+static int moduloReflect(int number, int period)
 {
+        return number % period;
+}
+
+static void seed(float maxAlpha=0.09f)
+{
+        static int const textureN = 6;
         static struct Seed {
                 Seed()
                 {
@@ -265,13 +271,13 @@ static void seed()
                                 withTexture(texture,
                                 [&]() {
                                         defineNonMipmappedARGB32Texture
-                                        (nextPowerOfTwo(resolution.first),
-                                         nextPowerOfTwo(resolution.second),
+                                        (nextPowerOfTwo(resolution.first)/2,
+                                         nextPowerOfTwo(resolution.second)/2,
                                         [=](uint32_t* pixels, int width, int height) {
                                                 perlin_noise(pixels, width, height, plane);
                                         });
                                 });
-                                plane += 0.9f;
+                                plane += 0.2f;
                         }
 
                         define2dQuadTriangles(quadTris, -1.0, -1.0, 2.0, 2.0, 0.0, 0.0, 1.0, 1.0);
@@ -280,7 +286,7 @@ static void seed()
                         defineRenderingProgram(texturedQuad, program, quadTris);
                 };
 
-                TextureResource textures[4];
+                TextureResource textures[textureN];
                 Geometry quadTris;
                 SimpleShaderProgram program;
                 RenderingProgram texturedQuad;
@@ -293,17 +299,30 @@ static void seed()
                 ([&] () {
                         auto colorLoc = glGetUniformLocation(all.program.id, "g_color");
                         auto period = 29;
+                        auto origin = period*(i/period);
+                        auto phase = (float) (i - origin)/(2.0 * period);
+                        auto textureIndex = moduloReflect(2*(i/period), textureN);
+                        auto otherTexture = moduloReflect(1 + 2*((i + period/2)/period), textureN);
+
                         withShaderProgram(all.program, [=]() {
-                                auto origin = period*(i/period);
-                                auto maxAlpha = 0.12f;
-                                auto const alpha = maxAlpha * sin(TAU * (i - origin)/(2.0 * period));
+                                auto const alpha = maxAlpha * fabs(sin(TAU * phase));
                                 glUniform4f(colorLoc,
                                             glfloat(alpha*1.0),
                                             glfloat(alpha*1.0),
                                             glfloat(alpha*1.0),
                                             glfloat(alpha));
                         });
-                        drawTriangles(all.texturedQuad, all.textures[i/10 % 4]);
+                        drawTriangles(all.texturedQuad, all.textures[textureIndex]);
+
+                        withShaderProgram(all.program, [=]() {
+                                auto const alpha = maxAlpha * fabs(cos(TAU * phase));
+                                glUniform4f(colorLoc,
+                                            glfloat(alpha*1.0),
+                                            glfloat(alpha*1.0),
+                                            glfloat(alpha*1.0),
+                                            glfloat(alpha));
+                        });
+                        drawTriangles(all.texturedQuad, all.textures[otherTexture]);
                 });
                 OGL_TRACE;
 
