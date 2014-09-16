@@ -82,3 +82,26 @@ void compile(FragmentShaderResource const& shader,
 {
         return innerCompile(shader.id, source);
 }
+
+void link(ShaderProgramResource const& program,
+          VertexShaderResource const& vertexShader,
+          FragmentShaderResource const& fragmentShader)
+{
+        glAttachShader(program.id, vertexShader.id);
+        glAttachShader(program.id, fragmentShader.id);
+        glLinkProgram(program.id);
+
+        auto id = program.id;
+        GLint status;
+        glGetShaderiv (id, GL_LINK_STATUS, &status);
+        if (status == GL_FALSE) {
+                GLint length;
+                glGetShaderiv (id, GL_INFO_LOG_LENGTH, &length);
+
+                std::vector<char> sinfo;
+                sinfo.reserve(length + 1);
+                glGetShaderInfoLog(id, length, &length, &sinfo.front());
+
+                printf ("ERROR linking shader [%s]\n", &sinfo.front());
+        }
+}

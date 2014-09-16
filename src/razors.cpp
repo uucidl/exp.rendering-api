@@ -208,10 +208,7 @@ static void defineProgram(SimpleShaderProgram& program,
 {
         compile(program.vertexShader, vertexShaderSource);
         compile(program.fragmentShader, fragmentShaderSource);
-
-        glAttachShader(program.id, program.vertexShader.id);
-        glAttachShader(program.id, program.fragmentShader.id);
-        glLinkProgram(program.id);
+        link(program, program.vertexShader, program.fragmentShader);
 
         withShaderProgram(program,
         [&program]() {
