@@ -93,7 +93,7 @@ void link(ShaderProgramResource const& program,
 
         auto id = program.id;
         GLint status;
-        glGetShaderiv (id, GL_LINK_STATUS, &status);
+        glGetProgramiv (id, GL_LINK_STATUS, &status);
         if (status == GL_FALSE) {
                 GLint length;
                 glGetShaderiv (id, GL_INFO_LOG_LENGTH, &length);
