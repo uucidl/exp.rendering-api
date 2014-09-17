@@ -5,24 +5,6 @@
 #include <sstream>
 #include <vector>
 
-void validate(ShaderProgramResource const& program)
-{
-        glValidateProgram (program.id);
-        GLint status;
-        glGetProgramiv (program.id, GL_VALIDATE_STATUS, &status);
-        if (status == GL_FALSE) {
-                GLint length;
-                glGetProgramiv (program.id, GL_INFO_LOG_LENGTH, &length);
-
-                std::vector<char> pinfo;
-                pinfo.reserve(length + 1);
-
-                glGetProgramInfoLog (program.id, length, &length, &pinfo.front());
-
-                printf ("ERROR: validating program [%s]\n", &pinfo.front());
-        }
-}
-
 static std::vector<std::string const> splitLines(std::string const source)
 {
         std::vector<std::string const> result;
@@ -103,5 +85,23 @@ void link(ShaderProgramResource const& program,
                 glGetShaderInfoLog(id, length, &length, &sinfo.front());
 
                 printf ("ERROR linking shader [%s]\n", &sinfo.front());
+        }
+}
+
+void validate(ShaderProgramResource const& program)
+{
+        glValidateProgram (program.id);
+        GLint status;
+        glGetProgramiv (program.id, GL_VALIDATE_STATUS, &status);
+        if (status == GL_FALSE) {
+                GLint length;
+                glGetProgramiv (program.id, GL_INFO_LOG_LENGTH, &length);
+
+                std::vector<char> pinfo;
+                pinfo.reserve(length + 1);
+
+                glGetProgramInfoLog (program.id, length, &length, &pinfo.front());
+
+                printf ("ERROR: validating program [%s]\n", &pinfo.front());
         }
 }
