@@ -24,6 +24,17 @@ END_NOWARN_BLOCK
 static const double TAU =
         6.28318530717958647692528676655900576839433879875021;
 
+struct Texture : public TextureResource {
+        GLint target;
+};
+
+static void withTexture(Texture const& texture, std::function<void()> fn)
+{
+        glBindTexture(texture.target, texture.id);
+        fn();
+        glBindTexture(texture.target, 0);
+}
+
 struct Framebuffer {
         Framebuffer(int desiredWidth, int desiredHeight)
         {
@@ -31,12 +42,15 @@ struct Framebuffer {
                                               result,
                                               depthbuffer,
                 { desiredWidth, desiredHeight });
+
+                result.target = GL_TEXTURE_2D;
+
                 width = desiredWidth;
                 height = desiredHeight;
         }
 
         FramebufferResource output;
-        TextureResource result;
+        Texture result;
         RenderbufferResource depthbuffer;
         int width;
         int height;
@@ -175,7 +189,7 @@ static void defineRenderingProgram(RenderingProgram& renderingProgram,
 }
 
 static void drawTriangles(RenderingProgram const& primitive,
-                          TextureResource const& texture)
+                          Texture const& texture)
 {
         withTexture(texture,
         [&primitive]() {
@@ -250,40 +264,42 @@ static int nextPowerOfTwo(int number)
         return static_cast<int> (pow(2.0, ceil(log2(number))));
 }
 
-static int moduloReflect(int number, int period)
+static void seed(float maxAlpha=0.06f)
 {
-        return number % period;
-}
-
-static void seed(float maxAlpha=0.09f)
-{
-        static int const textureN = 6;
+        static int const textureN = 12;
         static struct Seed {
                 Seed()
                 {
                         auto resolution = viewport();
+                        auto txWidth = nextPowerOfTwo(resolution.first)/2;
+                        auto txHeight = nextPowerOfTwo(resolution.second)/2;
 
-                        auto plane = 0.0f;
-                        for (auto const& texture : textures) {
-                                withTexture(texture,
-                                [&]() {
-                                        defineNonMipmappedARGB32Texture
-                                        (nextPowerOfTwo(resolution.first)/2,
-                                         nextPowerOfTwo(resolution.second)/2,
-                                        [=](uint32_t* pixels, int width, int height) {
-                                                perlin_noise(pixels, width, height, plane);
-                                        });
+                        texture.target = GL_TEXTURE_3D;
+                        withTexture(texture,
+                        [=]() {
+                                defineNonMipmappedARG32Texture3d
+                                (txWidth, txHeight, textureN,
+                                [](uint32_t* pixels, int width, int height, int depth) {
+                                        auto plane = 0.0f;
+                                        for (int d = 0; d < depth; d++) {
+                                                perlin_noise(pixels + d*width*height, width, height, plane);
+                                                plane += 0.2f;
+                                        }
                                 });
-                                plane += 0.2f;
-                        }
+                        });
 
                         define2dQuadTriangles(quadTris, -1.0, -1.0, 2.0, 2.0, 0.0, 0.0, 1.0, 1.0);
-                        defineProgram(program, defaultVS, defaultFS);
+                        defineProgram(program, seedVS, seedFS);
+
+                        auto depthLoc = glGetUniformLocation(program.id, "depth");
+                        withShaderProgram(program, [=]() {
+                                glUniform1f(depthLoc, 0.0f);
+                        });
 
                         defineRenderingProgram(texturedQuad, program, quadTris);
                 };
 
-                TextureResource textures[textureN];
+                Texture texture;
                 Geometry quadTris;
                 SimpleShaderProgram program;
                 RenderingProgram texturedQuad;
@@ -294,34 +310,25 @@ static void seed(float maxAlpha=0.09f)
 
                 withPremultipliedAlphaBlending
                 ([&] () {
-                        auto colorLoc = glGetUniformLocation(all.program.id, "g_color");
-                        auto period = 29;
-                        auto origin = period*(i/period);
-                        auto phase = (float) (i - origin)/(2.0 * period);
-                        auto textureIndex = moduloReflect(2*(i/period), textureN);
-                        auto otherTexture = moduloReflect(1 + 2*((i + period/2)/period), textureN);
+                        auto& program = all.program;
+                        auto colorLoc = glGetUniformLocation(program.id, "g_color");
+                        auto depthLoc = glGetUniformLocation(program.id, "depth");
 
-                        withShaderProgram(all.program, [=]() {
-                                auto const alpha = maxAlpha * fabs(sin(TAU * phase));
-                                glUniform4f(colorLoc,
-                                            glfloat(alpha*1.0),
-                                            glfloat(alpha*1.0),
-                                            glfloat(alpha*1.0),
-                                            glfloat(alpha));
-                        });
-                        drawTriangles(all.texturedQuad, all.textures[textureIndex]);
+                        auto period = 121.0;
+                        auto phase = (1.0 + cos(TAU * (float) i / period)) / 2.0;
 
-                        withShaderProgram(all.program, [=]() {
-                                auto const alpha = maxAlpha * fabs(cos(TAU * phase));
+                        withShaderProgram(program, [=]() {
+                                auto const alpha = maxAlpha;
                                 glUniform4f(colorLoc,
-                                            glfloat(alpha*1.0),
-                                            glfloat(alpha*1.0),
-                                            glfloat(alpha*1.0),
+                                            glfloat(alpha),
+                                            glfloat(alpha),
+                                            glfloat(alpha),
                                             glfloat(alpha));
+                                glUniform1f(depthLoc, phase);
+
                         });
-                        drawTriangles(all.texturedQuad, all.textures[otherTexture]);
+                        drawTriangles(all.texturedQuad, all.texture);
                 });
-                OGL_TRACE;
 
                 i++;
         }
