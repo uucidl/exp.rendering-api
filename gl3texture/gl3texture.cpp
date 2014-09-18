@@ -19,6 +19,54 @@ static std::string dirname(std::string path)
         return path.substr(0, path.find_last_of("/\\"));
 }
 
+namespace
+{
+class RootDirFileSystem : public FileSystem
+{
+public:
+        RootDirFileSystem(std::string const& basePath) : base_path(basePath) {}
+
+        std::ifstream open_file(std::string relpath) const
+        {
+                auto stream = std::ifstream(base_path + "/" + relpath);
+
+                if (stream.fail()) {
+                        throw std::runtime_error("could not load file at " + relpath);
+                }
+
+                return stream;
+        }
+
+private:
+        std::string const base_path;
+};
+
+class Tasks : public DisplayThreadTasks
+{
+public:
+        void add_task(std::function<bool()>&& task)
+        {
+                std::lock_guard<std::mutex> lock(tasks_mtx);
+                tasks.emplace_back(task);
+        }
+
+        void run()
+        {
+                std::lock_guard<std::mutex> lock(tasks_mtx);
+                for (auto& task : tasks) {
+                        std::future<bool> future = task.get_future();
+                        task();
+                        future.get();
+                }
+                tasks.clear();
+        }
+
+private:
+        std::mutex tasks_mtx;
+        std::vector<std::packaged_task<bool()>> tasks;
+};
+}
+
 extern void render_next_2chn_48khz_audio(uint64_t time_micros,
                 int const sample_count, double left[/*sample_count*/],
                 double right[/*sample_count*/])
@@ -121,52 +169,12 @@ static void define2dTrianglesVertexArray(BufferResource const& indices,
 
 extern void render_next_gl3(uint64_t time_micros)
 {
-        static class Tasks : public DisplayThreadTasks
-        {
-        public:
-                void add_task(std::function<bool()>&& task)
-                {
-                        std::lock_guard<std::mutex> lock(tasks_mtx);
-                        tasks.emplace_back(task);
-                }
-
-                void run()
-                {
-                        std::lock_guard<std::mutex> lock(tasks_mtx);
-                        for (auto& task : tasks) {
-                                std::future<bool> future = task.get_future();
-                                task();
-                                future.get();
-                        }
-                        tasks.clear();
-                }
-
-                std::mutex tasks_mtx;
-                std::vector<std::packaged_task<bool()>> tasks;
-        } tasks;
-
-        static class SrcFileSystem : public FileSystem
-        {
-        public:
-                SrcFileSystem() : base_path(dirname(__FILE__)) {}
-
-                std::ifstream open_file(std::string relpath) const
-                {
-                        auto stream = std::ifstream(base_path + "/" + relpath);
-
-                        if (stream.fail()) {
-                                throw std::runtime_error("could not load file at " + relpath);
-                        }
-
-                        return stream;
-                }
-
-                std::string base_path;
-        } srcFileSystem;
+        static Tasks tasks;
+        static RootDirFileSystem codeBaseFS { dirname(__FILE__) };
 
         static struct Resources {
                 Resources() :
-                        fileLoader(makeFileLoader(srcFileSystem, tasks))
+                        fileLoader(makeFileLoader(codeBaseFS, tasks))
                 {
                         {
                                 indicesCount = define2dQuadIndices(indices);
