@@ -167,6 +167,99 @@ static void define2dTrianglesVertexArray(BufferResource const& indices,
         glEnableVertexAttribArray(positionAttrib);
 }
 
+static
+void perlinNoisePixelFiller (uint32_t* data, int width, int height)
+{
+        for (int y = 0; y < height; y++) {
+                for (int x = 0; x < width; x++) {
+                        uint8_t values[4];
+                        for (size_t i = 0; i < sizeof values / sizeof values[0]; i++) {
+                                float val = 0.5 + stb_perlin_noise3(13.0 * x / width, 17.0 * y / height, 0.0);
+                                if (val > 1.0) {
+                                        val = 1.0;
+                                } else if (val < 0.0) {
+                                        val = 0.0;
+                                }
+
+                                values[i] = (int) (255 * val) & 0xff;
+                        }
+
+                        data[x + y*width] = (values[0] << 24)
+                                            | (values[1] << 16)
+                                            | (values[2] << 8)
+                                            | values[3];
+                }
+        }
+}
+
+extern void render(uint64_t time_micros)
+{
+        // prototype for a new render code
+
+        // value types
+        struct VertexShader {};
+        struct FragmentShader {};
+        struct Program {
+                VertexShader vertexShader;
+                FragmentShader fragmentShader;
+        };
+        struct Texture {};
+
+        struct ProgramInputs {
+                std::vector<Texture> textures;
+        };
+        struct Geometry {};
+        struct Rect {
+                float x;
+                float y;
+                float width;
+                float height;
+        };
+
+        // constructors
+        auto texture = [](int width, int height,
+        std::function<void(uint32_t*, int, int)>) {
+                return Texture {};
+        };
+
+        auto vertexShaderFromFile = [](std::string filename) {
+                return VertexShader {};
+        };
+
+        auto fragmentShaderFromFile = [](std::string filename) {
+                return FragmentShader {};
+        };
+
+        // drawing infrastructure
+
+        // persistent datastructure... the core of the infrastructure
+        struct FrameSeries {
+        };
+
+        auto draw = [](FrameSeries& output, Program program, ProgramInputs inputs,
+        Geometry geometry) {
+        };
+
+        // library
+        auto quad = [](Rect coords, Rect uvcoords) -> Geometry {
+                return Geometry {};
+        };
+
+        // user code
+
+        static FrameSeries output;
+
+        draw(output, {
+                .vertexShader = vertexShaderFromFile("main.vs"),
+                .fragmentShader = fragmentShaderFromFile("main.fs")
+        }, {
+                .textures = { texture(64, 64, perlinNoisePixelFiller) }
+        },
+        quad({ .x = 1.0, .y = -1.0, .width = 2.0, .height = 2.0 },
+        { .x = 0.0, .y = 0.0, .width = 1.0, .height = 1.0 })
+            );
+}
+
 extern void render_next_gl3(uint64_t time_micros)
 {
         static Tasks tasks;
@@ -177,7 +270,8 @@ extern void render_next_gl3(uint64_t time_micros)
                         fileLoader(makeFileLoader(codeBaseFS, tasks))
                 {
                         {
-                                indicesCount = define2dQuadIndices(indices);
+                                quadIndicesOffset = 0;
+                                quadIndicesCount = define2dQuadIndices(indices);
                                 quadPositionOffset = define2dQuadBuffer(vertices, -1.0, -1.0, 2.0, 2.0);
                                 quadTexcoordsOffset = define2dQuadBuffer(texcoords, 0.0, 0.0, 1.0, 1.0);
                         }
@@ -205,35 +299,10 @@ extern void render_next_gl3(uint64_t time_micros)
                         {
                                 int const width = 64;
                                 int const height = 64;
-                                OGL_TRACE;
 
                                 withTexture(quadTexture,
                                 []() {
-                                        defineNonMipmappedARGB32Texture(width, height, [](uint32_t* data,
-                                        int const width, int const height) {
-                                                for (int y = 0; y < height; y++) {
-                                                        for (int x = 0; x < width; x++) {
-                                                                uint8_t values[4];
-                                                                for (size_t i = 0; i < sizeof values / sizeof values[0]; i++) {
-                                                                        float val = 0.5 + stb_perlin_noise3(13.0 * x / width, 17.0 * y / height, 0.0);
-                                                                        if (val > 1.0) {
-                                                                                val = 1.0;
-                                                                        } else if (val < 0.0) {
-                                                                                val = 0.0;
-                                                                        }
-
-                                                                        values[i] = (int) (255 * val) & 0xff;
-                                                                }
-
-
-                                                                data[x + y*width] = (values[0] << 24)
-                                                                                    | (values[1] << 16)
-                                                                                    | (values[2] << 8)
-                                                                                    | values[3];
-                                                        }
-                                                }
-
-                                        });
+                                        defineNonMipmappedARGB32Texture(width, height, perlinNoisePixelFiller);
                                 });
                         }
                 }
@@ -243,24 +312,28 @@ extern void render_next_gl3(uint64_t time_micros)
                 FileLoaderResource fileLoader;
 
                 TextureResource quadTexture;
-                size_t indicesCount;
                 VertexArrayResource vertexArray;
                 BufferResource indices;
                 BufferResource vertices;
                 BufferResource texcoords;
 
+                GLvoid* quadIndicesOffset;
+                size_t quadIndicesCount;
                 GLvoid* quadPositionOffset;
                 GLvoid* quadTexcoordsOffset;
         } resources;
 
         tasks.run();
 
+        render(time_micros);
+
         auto const& program = resources.mainShader;
         if (program.id > 0) {
                 withShaderProgram(program, []() {
                         withTexture(resources.quadTexture, []() {
                                 withVertexArray(resources.vertexArray, []() {
-                                        glDrawElements(GL_TRIANGLES, resources.indicesCount, GL_UNSIGNED_INT, 0);
+                                        glDrawElements(GL_TRIANGLES, resources.quadIndicesCount, GL_UNSIGNED_INT,
+                                                       resources.quadIndicesOffset);
                                 });
                         });
                 });
