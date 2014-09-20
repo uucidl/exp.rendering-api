@@ -324,9 +324,9 @@ extern void render(uint64_t time_micros)
 
                 void beginFrame()
                 {
-                        fragmentShaders.clear();
-                        vertexShaders.clear();
-                        programs.clear();
+                        // we should invalidate arrays so as to garbage
+                        // collect / recycle the now un-needed definitions
+                }
                 }
 
                 TextureResource& texture(Texture textureDef)
