@@ -194,11 +194,76 @@ void perlinNoisePixelFiller (uint32_t* data, int width, int height)
 
 extern void render(uint64_t time_micros)
 {
+        // infrastructure
+        static Tasks tasks;
+        static RootDirFileSystem codeBaseFS { dirname(__FILE__) };
+        static FileLoaderResource fileLoader = makeFileLoader(codeBaseFS, tasks);
+
+        tasks.run();
+
+        // caches
+        struct FileContent {
+                int state;
+                std::string path;
+                std::string content;
+        };
+        struct FileHandle {
+                long id;
+        };
+        static auto loadingFiles = std::vector<FileContent> {};
+        static auto loadedFiles = std::vector<FileContent> {};
+        auto loadFileContent = [](std::string const& path) -> FileHandle {
+                auto lookupFC = [](std::vector<FileContent>& cache,
+                std::string const& path) -> FileContent* {
+                        auto existing = std::find_if(std::begin(cache), std::end(cache), [=](FileContent const& fc)
+                        {
+                                return path == fc.path;
+                        });
+                        if (existing == std::end(cache))
+                        {
+                                return nullptr;
+                        }
+
+                        return &(*existing);
+                };
+
+                auto loaded = lookupFC(loadedFiles, path);
+                if (loaded)
+                {
+                        return { .id = loaded - &loadedFiles.front() };
+                }
+
+                auto loading = lookupFC(loadingFiles, path);
+                if (!loading)
+                {
+                        loadingFiles.push_back({ .state = -1, .path = path });
+                        loadFile(*fileLoader.get(), path,
+                        [=](std::string const& content) {
+                                auto loading = lookupFC(loadingFiles, path);
+                                loading->content = content;
+                                loading->state = 0;
+                        });
+                        return { .id = -1 };
+                }
+
+                if (loading->state == 0)
+                {
+                        loadedFiles.push_back(*loading);
+                        return { .id = static_cast<long>(loadedFiles.size() - 1) };
+                }
+
+                return { .id = -1 };
+        };
+
         // prototype for a new render code
 
         // value types
-        struct VertexShader {};
-        struct FragmentShader {};
+        struct VertexShader {
+                std::string source;
+        };
+        struct FragmentShader {
+                std::string source;
+        };
         struct Program {
                 VertexShader vertexShader;
                 FragmentShader fragmentShader;
@@ -222,22 +287,100 @@ extern void render(uint64_t time_micros)
                 return Texture {};
         };
 
-        auto vertexShaderFromFile = [](std::string filename) {
-                return VertexShader {};
+        auto vertexShaderFromFile = [=](std::string filename) {
+                auto fh = loadFileContent(filename);
+                if (fh.id < 0) {
+                        return VertexShader {};
+                }
+
+                return VertexShader { .source = loadedFiles[fh.id].content };
         };
 
-        auto fragmentShaderFromFile = [](std::string filename) {
-                return FragmentShader {};
+        auto fragmentShaderFromFile = [=](std::string filename) {
+                auto fh = loadFileContent(filename);
+                if (fh.id < 0) {
+                        return FragmentShader {};
+                }
+
+                return FragmentShader { .source = loadedFiles[fh.id].content };
         };
 
         // drawing infrastructure
 
         // persistent datastructure... the core of the infrastructure
-        struct FrameSeries {
+        class FrameSeries
+        {
+        public:
+                ~FrameSeries()
+                {
+                        printf("summary:\n"
+                               "programs: %ld\n", programs.size());
+                        printf("program creations: %ld\n", programCreations);
+                }
+
+                void beginFrame()
+                {
+                        fragmentShaders.clear();
+                        vertexShaders.clear();
+                        programs.clear();
+                }
+
+                ShaderProgramResource& program(Program programDef)
+                {
+                        auto existing =
+                                std::find_if(std::begin(programDefs), std::end(programDefs),
+                        [&programDef](Program const& element) {
+                                return element.fragmentShader.source
+                                       == programDef.fragmentShader.source
+                                       && element.vertexShader.source
+                                       == programDef.vertexShader.source;
+                        });
+                        if (existing != std::end(programDefs)) {
+                                return programs[&(*existing) - &programDefs.front()];
+                        }
+
+                        programs.emplace_back();
+                        programDefs.push_back(programDef);
+                        vertexShaders.emplace_back();
+                        fragmentShaders.emplace_back();
+
+                        auto& program = programs.back();
+                        auto& vertexShader = vertexShaders.back();
+                        auto& fragmentShader = fragmentShaders.back();
+
+                        compile(vertexShader, programDef.vertexShader.source);
+                        compile(fragmentShader, programDef.fragmentShader.source);
+
+                        glAttachShader(program.id, vertexShader.id);
+                        glAttachShader(program.id, fragmentShader.id);
+                        glLinkProgram(program.id);
+
+                        programCreations++;
+
+                        return program;
+                }
+
+        private:
+                std::vector<VertexShaderResource> vertexShaders;
+                std::vector<FragmentShaderResource> fragmentShaders;
+                std::vector<ShaderProgramResource> programs;
+                std::vector<Program> programDefs;
+                long programCreations = {0};
         };
 
-        auto draw = [](FrameSeries& output, Program program, ProgramInputs inputs,
-        Geometry geometry) {
+        auto draw = [](FrameSeries& output, Program programDef, ProgramInputs inputs,
+        Geometry geometryDef) {
+                output.beginFrame();
+
+                if (programDef.vertexShader.source.empty()
+                    || programDef.fragmentShader.source.empty()) {
+                        return;
+                }
+
+                auto& program = output.program(programDef);
+                withShaderProgram(program,
+                []() {
+                });
         };
 
         // library
