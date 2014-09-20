@@ -286,12 +286,6 @@ extern void render(uint64_t time_micros)
                                BufferResource const* arrays[],
                                char* data) = nullptr;
         };
-        struct Rect {
-                float x;
-                float y;
-                float width;
-                float height;
-        };
 
         // constructors
         auto texture = [](int width, int height,
@@ -328,6 +322,7 @@ extern void render(uint64_t time_micros)
                         printf("summary:\n");
                         printf("program creations: %ld\n", programCreations);
                         printf("texture creations: %ld\n", textureCreations);
+                        printf("mesh creations: %ld\n", meshCreations);
                 }
 
                 void beginFrame()
@@ -336,10 +331,34 @@ extern void render(uint64_t time_micros)
                         // collect / recycle the now un-needed definitions
                 }
 
-                VertexArrayResource& vertexArray(GeometryDef geometryDef)
+                struct Mesh {
+                        VertexArrayResource vertexArray;
+                        size_t indicesCount = 0;
+                        BufferResource indices;
+                        std::vector<BufferResource> vertices;
+                };
+
+                Mesh const& mesh(GeometryDef geometryDef)
                 {
-                        vertexArrays.emplace_back();
-                        return vertexArrays.back();
+                        auto existing =
+                                std::find_if(std::begin(meshDefs), std::end(meshDefs),
+                        [&geometryDef](GeometryDef const& element) {
+                                return element.data == geometryDef.data
+                                       && element.definer == geometryDef.definer
+                                       && element.arrayCount == element.arrayCount;
+                        });
+                        if (existing != std::end(meshDefs)) {
+                                return meshes.at(&(*existing) - &meshDefs.front());
+                        }
+
+                        meshes.emplace_back();
+                        meshDefs.push_back(geometryDef);
+
+                        // TODO: create mesh here
+
+                        meshCreations++;
+
+                        return meshes.back();
                 }
 
                 TextureResource& texture(Texture textureDef)
@@ -352,11 +371,11 @@ extern void render(uint64_t time_micros)
                                        && element.pixelFiller == textureDef.pixelFiller;
                         });
                         if (existing != std::end(textureDefs)) {
-                                return textures[&(*existing) - &textureDefs.front()];
+                                return textures.at(&(*existing) - &textureDefs.front());
                         }
 
                         textures.emplace_back();
-                        textureDefs.emplace_back();
+                        textureDefs.push_back(textureDef);
 
                         auto& texture = textures.back();
                         withTexture(texture,
@@ -381,7 +400,7 @@ extern void render(uint64_t time_micros)
                                        == programDef.vertexShader.source;
                         });
                         if (existing != std::end(programDefs)) {
-                                return programs[&(*existing) - &programDefs.front()];
+                                return programs.at(&(*existing) - &programDefs.front());
                         }
 
                         programs.emplace_back();
@@ -406,18 +425,19 @@ extern void render(uint64_t time_micros)
                 }
 
         private:
-                std::vector<VertexArrayResource> vertexArrays;
-                std::vector<GeometryDef> vertexArrayDefs;
+                std::vector<Mesh> meshes;
+                std::vector<GeometryDef> meshDefs;
+                long meshCreations = 0;
 
                 std::vector<TextureResource> textures;
                 std::vector<Texture> textureDefs;
-                long textureCreations = {0};
+                long textureCreations = 0;
 
                 std::vector<VertexShaderResource> vertexShaders;
                 std::vector<FragmentShaderResource> fragmentShaders;
                 std::vector<ShaderProgramResource> programs;
                 std::vector<Program> programDefs;
-                long programCreations = {0};
+                long programCreations = 0;
         };
 
         auto draw = [](FrameSeries& output, Program programDef, ProgramInputs inputs,
@@ -450,11 +470,10 @@ extern void render(uint64_t time_micros)
                         }
 
                         auto const vars = getMainShaderVariables(program);
-                        auto const& vertexArray = output.vertexArray(geometryDef);
-                        auto indicesCount = 0;
+                        auto const& mesh = output.mesh(geometryDef);
 
                         // draw here
-                        withVertexArray(vertexArray, [&program,&vars,&geometryDef,indicesCount]() {
+                        withVertexArray(mesh.vertexArray, [&program,&vars,&mesh]() {
                                 auto vertexAttribVars = std::vector<GLint> {
                                         vars.positionAttrib,
                                         vars.texcoordAttrib,
@@ -466,7 +485,7 @@ extern void render(uint64_t time_micros)
 
                                 validate(program);
                                 glDrawElements(GL_TRIANGLES,
-                                               indicesCount,
+                                               mesh.indicesCount,
                                                GL_UNSIGNED_INT,
                                                0);
 
@@ -483,7 +502,14 @@ extern void render(uint64_t time_micros)
                 });
         };
 
-        // library
+        // user defined primitives library
+        struct Rect {
+                float x;
+                float y;
+                float width;
+                float height;
+        };
+
         auto quad = [](Rect coords, Rect uvcoords) -> GeometryDef {
                 auto geometry = GeometryDef {};
 
