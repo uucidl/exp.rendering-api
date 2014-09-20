@@ -269,9 +269,9 @@ extern void render(uint64_t time_micros)
                 FragmentShader fragmentShader;
         };
         struct Texture {
-                int width;
-                int height;
-                void (*pixelFiller)(uint32_t* pixels, int width, int height);
+                int width = 0;
+                int height = 0;
+                void (*pixelFiller)(uint32_t* pixels, int width, int height) = nullptr;
         };
 
         struct ProgramInputs {
