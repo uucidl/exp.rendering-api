@@ -13,6 +13,7 @@
 
 #include <vector>
 #include <future>
+#include <cmath>
 
 static std::string dirname(std::string path)
 {
@@ -349,7 +350,10 @@ extern void render(uint64_t time_micros)
                         printf("summary:\n");
                         printf("program creations: %ld\n", programCreations);
                         printf("texture creations: %ld\n", textureCreations);
-                        printf("mesh creations: %ld\n", meshCreations);
+                        printf("mesh creations: %ld\n"
+                               "meshes: %ld\n",
+                               meshCreations,
+                               meshes.size());
                 }
 
                 void beginFrame()
@@ -586,7 +590,7 @@ extern void render(uint64_t time_micros)
                         texture(128, 128, perlinNoisePixelFiller)
                 }
         },
-        quad({ .x = -0.80, .y = -.80, .width = 1.6, .height = 1.6 },
+        quad({ .x = (float)(-0.80 + 0.15 * sin(time_micros / 100000.0)), .y = -.80, .width = 1.6, .height = 1.6 },
         { .x = 0.0, .y = 0.0, .width = 1.0, .height = 1.0 })
             );
 }
