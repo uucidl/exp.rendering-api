@@ -23,6 +23,11 @@ using FileLoaderResource =
 FileLoaderResource makeFileLoader(FileSystem& fs,
                                   DisplayThreadTasks& display_tasks);
 
+void loadFile(
+              FileLoader& loader,
+              std::string path,
+              std::function<void(std::string const&)> continuation);
+
 void loadFilePair(
         FileLoader& loader,
         std::string path1,
