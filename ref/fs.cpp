@@ -18,12 +18,12 @@ public:
                       std::function<void(std::string const&)> continuation)
         {
                 auto future_pair = std::async(std::launch::async, [=]() {
-                                try {
-                                        auto stream = file_system.open_file(path);
-                                        std::string content {
-                                                std::istreambuf_iterator<char>(stream),
-                                                        std::istreambuf_iterator<char>()
-                                                        };
+                        try {
+                                auto stream = file_system.open_file(path);
+                                std::string content {
+                                        std::istreambuf_iterator<char>(stream),
+                                        std::istreambuf_iterator<char>()
+                                };
 
                                 display_tasks.add_task([=] () {
                                         continuation(content);
@@ -33,14 +33,14 @@ public:
                                 // pass any exception to display thread so it can be treated
                                 display_tasks.add_task([=] () -> bool {
                                         throw e;
-                                        });
+                                });
                         }
 
-                        });
+                });
 
                 std::lock_guard<std::mutex> lock(futures_mtx);
                 futures.push_back(std::move(future_pair));
-}
+        }
 
         void loadFiles(std::string path1,
                        std::string path2,
@@ -90,9 +90,9 @@ FileLoaderResource makeFileLoader(FileSystem& fs,
 }
 
 void loadFile(
-              FileLoader& loader,
-              std::string path,
-              std::function<void(std::string const&)> continuation)
+        FileLoader& loader,
+        std::string path,
+        std::function<void(std::string const&)> continuation)
 {
         loader.loadFile(path, continuation);
 }
