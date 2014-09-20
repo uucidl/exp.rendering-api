@@ -277,7 +277,15 @@ extern void render(uint64_t time_micros)
         struct ProgramInputs {
                 std::vector<Texture> textures;
         };
-        struct Geometry {};
+        struct GeometryDef {
+                std::vector<char> data;
+                size_t arrayCount = 0;
+
+                // @returns indices count
+                int (*definer)(BufferResource const& elementBuffer,
+                               BufferResource const* arrays[],
+                               char* data) = nullptr;
+        };
         struct Rect {
                 float x;
                 float y;
@@ -327,6 +335,11 @@ extern void render(uint64_t time_micros)
                         // we should invalidate arrays so as to garbage
                         // collect / recycle the now un-needed definitions
                 }
+
+                VertexArrayResource& vertexArray(GeometryDef geometryDef)
+                {
+                        vertexArrays.emplace_back();
+                        return vertexArrays.back();
                 }
 
                 TextureResource& texture(Texture textureDef)
@@ -393,6 +406,9 @@ extern void render(uint64_t time_micros)
                 }
 
         private:
+                std::vector<VertexArrayResource> vertexArrays;
+                std::vector<GeometryDef> vertexArrayDefs;
+
                 std::vector<TextureResource> textures;
                 std::vector<Texture> textureDefs;
                 long textureCreations = {0};
@@ -405,17 +421,19 @@ extern void render(uint64_t time_micros)
         };
 
         auto draw = [](FrameSeries& output, Program programDef, ProgramInputs inputs,
-        Geometry geometryDef) {
+        GeometryDef geometryDef) {
                 output.beginFrame();
+
+                // define and draw the content of the frame
 
                 if (programDef.vertexShader.source.empty()
                     || programDef.fragmentShader.source.empty()) {
                         return;
                 }
 
-                auto& program = output.program(programDef);
+                auto const& program = output.program(programDef);
                 withShaderProgram(program,
-                [&output,&inputs,&program]() {
+                [&output,&inputs,&program,&geometryDef]() {
                         auto textureTargets = std::vector<GLenum> {};
                         {
                                 auto i = 0;
@@ -431,9 +449,31 @@ extern void render(uint64_t time_micros)
                                 }
                         }
 
-                        validate(program);
+                        auto const vars = getMainShaderVariables(program);
+                        auto const& vertexArray = output.vertexArray(geometryDef);
+                        auto indicesCount = 0;
 
                         // draw here
+                        withVertexArray(vertexArray, [&program,&vars,&geometryDef,indicesCount]() {
+                                auto vertexAttribVars = std::vector<GLint> {
+                                        vars.positionAttrib,
+                                        vars.texcoordAttrib,
+                                };
+
+                                for (auto attrib : vertexAttribVars) {
+                                        glEnableVertexAttribArray(attrib);
+                                }
+
+                                validate(program);
+                                glDrawElements(GL_TRIANGLES,
+                                               indicesCount,
+                                               GL_UNSIGNED_INT,
+                                               0);
+
+                                for (auto attrib : vertexAttribVars) {
+                                        glDisableVertexAttribArray(attrib);
+                                }
+                        });
 
                         // unbind
                         for (auto target : textureTargets) {
@@ -444,8 +484,24 @@ extern void render(uint64_t time_micros)
         };
 
         // library
-        auto quad = [](Rect coords, Rect uvcoords) -> Geometry {
-                return Geometry {};
+        auto quad = [](Rect coords, Rect uvcoords) -> GeometryDef {
+                auto geometry = GeometryDef {};
+
+                geometry.arrayCount = 2;
+                geometry.data.reserve(sizeof(coords) + sizeof(uvcoords));
+
+                char* memory = &geometry.data.front();
+                Rect* coordsPtr = reinterpret_cast<Rect*> (memory + 0);
+                Rect* uvcoordsPtr = reinterpret_cast<Rect*> (memory + sizeof(*coordsPtr));
+                *coordsPtr = coords;
+                *uvcoordsPtr = uvcoords;
+#if 0
+                geometry.definer = [](BufferResource const& elementBuffer,
+                                      BufferResource const* arrays[],
+                                      char* data)
+                {}
+#endif
+                return geometry;
         };
 
         // user code
