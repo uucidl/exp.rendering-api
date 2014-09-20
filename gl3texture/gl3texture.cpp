@@ -268,7 +268,11 @@ extern void render(uint64_t time_micros)
                 VertexShader vertexShader;
                 FragmentShader fragmentShader;
         };
-        struct Texture {};
+        struct Texture {
+                int width;
+                int height;
+                void (*pixelFiller)(uint32_t* pixels, int width, int height);
+        };
 
         struct ProgramInputs {
                 std::vector<Texture> textures;
@@ -313,9 +317,9 @@ extern void render(uint64_t time_micros)
         public:
                 ~FrameSeries()
                 {
-                        printf("summary:\n"
-                               "programs: %ld\n", programs.size());
+                        printf("summary:\n");
                         printf("program creations: %ld\n", programCreations);
+                        printf("texture creations: %ld\n", textureCreations);
                 }
 
                 void beginFrame()
@@ -323,6 +327,34 @@ extern void render(uint64_t time_micros)
                         fragmentShaders.clear();
                         vertexShaders.clear();
                         programs.clear();
+                }
+
+                TextureResource& texture(Texture textureDef)
+                {
+                        auto existing =
+                                std::find_if(std::begin(textureDefs), std::end(textureDefs),
+                        [&textureDef](Texture const& element) {
+                                return element.width == textureDef.width
+                                       && element.height == textureDef.height
+                                       && element.pixelFiller == textureDef.pixelFiller;
+                        });
+                        if (existing != std::end(textureDefs)) {
+                                return textures[&(*existing) - &textureDefs.front()];
+                        }
+
+                        textures.emplace_back();
+                        textureDefs.emplace_back();
+
+                        auto& texture = textures.back();
+                        withTexture(texture,
+                        [&textureDef]() {
+                                defineNonMipmappedARGB32Texture(textureDef.width, textureDef.height,
+                                                                textureDef.pixelFiller);
+                        });
+
+
+                        textureCreations++;
+                        return texture;
                 }
 
                 ShaderProgramResource& program(Program programDef)
@@ -361,6 +393,10 @@ extern void render(uint64_t time_micros)
                 }
 
         private:
+                std::vector<TextureResource> textures;
+                std::vector<Texture> textureDefs;
+                long textureCreations = {0};
+
                 std::vector<VertexShaderResource> vertexShaders;
                 std::vector<FragmentShaderResource> fragmentShaders;
                 std::vector<ShaderProgramResource> programs;
@@ -379,7 +415,31 @@ extern void render(uint64_t time_micros)
 
                 auto& program = output.program(programDef);
                 withShaderProgram(program,
-                []() {
+                [&output,&inputs,&program]() {
+                        auto textureTargets = std::vector<GLenum> {};
+                        {
+                                auto i = 0;
+                                for (auto& textureDef : inputs.textures) {
+                                        auto& texture = output.texture(textureDef);
+                                        auto target = GL_TEXTURE0 + i;
+                                        i++;
+
+                                        textureTargets.emplace_back(target);
+                                        glActiveTexture(target);
+                                        glBindTexture(GL_TEXTURE_2D, texture.id);
+                                        i++;
+                                }
+                        }
+
+                        validate(program);
+
+                        // draw here
+
+                        // unbind
+                        for (auto target : textureTargets) {
+                                glActiveTexture(GL_TEXTURE0 + target);
+                                glBindTexture(GL_TEXTURE_2D, 0);
+                        }
                 });
         };
 
