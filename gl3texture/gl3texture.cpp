@@ -300,14 +300,14 @@ extern void render(uint64_t time_micros)
                 VertexShader vertexShader;
                 FragmentShader fragmentShader;
         };
-        struct Texture {
+        struct TextureDef {
                 int width = 0;
                 int height = 0;
                 void (*pixelFiller)(uint32_t* pixels, int width, int height) = nullptr;
         };
 
         struct ProgramInputs {
-                std::vector<Texture> textures;
+                std::vector<TextureDef> textures;
         };
         struct GeometryDef {
                 std::vector<char> data;
@@ -320,11 +320,6 @@ extern void render(uint64_t time_micros)
         };
 
         // constructors
-        auto texture = [](int width, int height,
-        std::function<void(uint32_t*, int, int)>) {
-                return Texture {};
-        };
-
         auto vertexShaderFromFile = [=](std::string filename) {
                 auto fh = loadFileContent(filename);
                 if (fh.id < 0) {
@@ -402,11 +397,11 @@ extern void render(uint64_t time_micros)
                         return meshes.back();
                 }
 
-                TextureResource& texture(Texture textureDef)
+                TextureResource& texture(TextureDef textureDef)
                 {
                         auto existing =
                                 std::find_if(std::begin(textureDefs), std::end(textureDefs),
-                        [&textureDef](Texture const& element) {
+                        [&textureDef](TextureDef const& element) {
                                 return element.width == textureDef.width
                                        && element.height == textureDef.height
                                        && element.pixelFiller == textureDef.pixelFiller;
@@ -469,7 +464,7 @@ extern void render(uint64_t time_micros)
                 long meshCreations = 0;
 
                 std::vector<TextureResource> textures;
-                std::vector<Texture> textureDefs;
+                std::vector<TextureDef> textureDefs;
                 long textureCreations = 0;
 
                 std::vector<VertexShaderResource> vertexShaders;
@@ -481,6 +476,7 @@ extern void render(uint64_t time_micros)
 
         auto draw = [](FrameSeries& output, Program programDef, ProgramInputs inputs,
         GeometryDef geometryDef) {
+                OGL_TRACE;
                 output.beginFrame();
 
                 // define and draw the content of the frame
@@ -498,14 +494,17 @@ extern void render(uint64_t time_micros)
                         {
                                 auto i = 0;
                                 for (auto& textureDef : inputs.textures) {
+                                        auto unit = i;
                                         auto& texture = output.texture(textureDef);
-                                        auto target = GL_TEXTURE0 + i;
+                                        auto target = GL_TEXTURE0 + unit;
 
                                         textureTargets.emplace_back(target);
-                                        glUniform1i(vars.textureUniforms[i], i);
+                                        OGL_TRACE;
                                         glActiveTexture(target);
                                         glBindTexture(GL_TEXTURE_2D, texture.id);
+                                        glUniform1i(vars.textureUniforms[unit], unit);
                                         i++;
+                                        OGL_TRACE;
                                 }
                         }
 
@@ -523,11 +522,13 @@ extern void render(uint64_t time_micros)
 
                                         glBindBuffer(GL_ARRAY_BUFFER, mesh.vertexBuffers[i].id);
                                         glVertexAttribPointer(attrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
+
                                         glEnableVertexAttribArray(attrib);
                                         i++;
                                 }
 
                                 validate(program);
+
                                 glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.indices.id);
                                 glDrawElements(GL_TRIANGLES,
                                                mesh.indicesCount,
@@ -541,9 +542,10 @@ extern void render(uint64_t time_micros)
 
                         // unbind
                         for (auto target : textureTargets) {
-                                glActiveTexture(GL_TEXTURE0 + target);
+                                glActiveTexture(target);
                                 glBindTexture(GL_TEXTURE_2D, 0);
                         }
+                        OGL_TRACE;
                 });
         };
 
@@ -566,11 +568,23 @@ extern void render(uint64_t time_micros)
 
         static FrameSeries output;
 
+        auto texture = [](int width, int height, void (*pixelFiller)(uint32_t*,int,
+        int)) {
+                auto textureDef = TextureDef {};
+                textureDef.width = width;
+                textureDef.height = height;
+                textureDef.pixelFiller = pixelFiller;
+
+                return textureDef;
+        };
+
         draw(output, {
                 .vertexShader = vertexShaderFromFile("main.vs"),
                 .fragmentShader = fragmentShaderFromFile("main.fs")
         }, {
-                .textures = { texture(128, 128, perlinNoisePixelFiller) }
+                .textures = {
+                        texture(128, 128, perlinNoisePixelFiller)
+                }
         },
         quad({ .x = -0.80, .y = -.80, .width = 1.6, .height = 1.6 },
         { .x = 0.0, .y = 0.0, .width = 1.0, .height = 1.0 })
