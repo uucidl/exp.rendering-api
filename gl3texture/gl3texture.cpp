@@ -192,6 +192,38 @@ void perlinNoisePixelFiller (uint32_t* data, int width, int height)
         }
 }
 
+struct Rect {
+        float x;
+        float y;
+        float width;
+        float height;
+};
+
+struct QuadDefinerParams {
+        Rect coords;
+        Rect uvcoords;
+};
+
+static
+size_t quadDefiner(BufferResource const& elementBuffer,
+                   BufferResource const arrays[],
+                   char* data)
+{
+        auto params = reinterpret_cast<QuadDefinerParams*> (data);
+        auto& coords = params->coords;
+        auto& uvcoords = params->uvcoords;
+
+        size_t indicesCount = define2dQuadIndices(elementBuffer);
+        define2dQuadBuffer(arrays[0],
+                           coords.x, coords.y,
+                           coords.width, coords.height);
+        define2dQuadBuffer(arrays[1],
+                           uvcoords.x, uvcoords.y,
+                           uvcoords.width, uvcoords.height);
+
+        return indicesCount;
+}
+
 extern void render(uint64_t time_micros)
 {
         // infrastructure
@@ -282,9 +314,9 @@ extern void render(uint64_t time_micros)
                 size_t arrayCount = 0;
 
                 // @returns indices count
-                int (*definer)(BufferResource const& elementBuffer,
-                               BufferResource const* arrays[],
-                               char* data) = nullptr;
+                size_t (*definer)(BufferResource const& elementBuffer,
+                                  BufferResource const arrays[],
+                                  char* data) = nullptr;
         };
 
         // constructors
@@ -335,7 +367,7 @@ extern void render(uint64_t time_micros)
                         VertexArrayResource vertexArray;
                         size_t indicesCount = 0;
                         BufferResource indices;
-                        std::vector<BufferResource> vertices;
+                        std::vector<BufferResource> vertexBuffers;
                 };
 
                 Mesh const& mesh(GeometryDef geometryDef)
@@ -351,11 +383,20 @@ extern void render(uint64_t time_micros)
                                 return meshes.at(&(*existing) - &meshDefs.front());
                         }
 
-                        meshes.emplace_back();
                         meshDefs.push_back(geometryDef);
+                        meshes.emplace_back();
+                        auto& mesh = meshes.back();
 
-                        // TODO: create mesh here
+                        if (geometryDef.definer) {
+                                mesh.vertexBuffers.resize(geometryDef.arrayCount);
+                                mesh.indicesCount = geometryDef.definer
+                                                    (mesh.indices,
+                                                     &mesh.vertexBuffers.front(),
+                                                     &geometryDef.data.front());
+                                OGL_TRACE;
+                        }
 
+                        OGL_TRACE;
                         meshCreations++;
 
                         return meshes.back();
@@ -384,7 +425,7 @@ extern void render(uint64_t time_micros)
                                                                 textureDef.pixelFiller);
                         });
 
-
+                        OGL_TRACE;
                         textureCreations++;
                         return texture;
                 }
@@ -414,11 +455,9 @@ extern void render(uint64_t time_micros)
 
                         compile(vertexShader, programDef.vertexShader.source);
                         compile(fragmentShader, programDef.fragmentShader.source);
+                        link(program, vertexShader, fragmentShader);
 
-                        glAttachShader(program.id, vertexShader.id);
-                        glAttachShader(program.id, fragmentShader.id);
-                        glLinkProgram(program.id);
-
+                        OGL_TRACE;
                         programCreations++;
 
                         return program;
@@ -454,22 +493,22 @@ extern void render(uint64_t time_micros)
                 auto const& program = output.program(programDef);
                 withShaderProgram(program,
                 [&output,&inputs,&program,&geometryDef]() {
+                        auto const vars = getMainShaderVariables(program);
                         auto textureTargets = std::vector<GLenum> {};
                         {
                                 auto i = 0;
                                 for (auto& textureDef : inputs.textures) {
                                         auto& texture = output.texture(textureDef);
                                         auto target = GL_TEXTURE0 + i;
-                                        i++;
 
                                         textureTargets.emplace_back(target);
+                                        glUniform1i(vars.textureUniforms[i], i);
                                         glActiveTexture(target);
                                         glBindTexture(GL_TEXTURE_2D, texture.id);
                                         i++;
                                 }
                         }
 
-                        auto const vars = getMainShaderVariables(program);
                         auto const& mesh = output.mesh(geometryDef);
 
                         // draw here
@@ -479,11 +518,17 @@ extern void render(uint64_t time_micros)
                                         vars.texcoordAttrib,
                                 };
 
+                                int i = 0;
                                 for (auto attrib : vertexAttribVars) {
+
+                                        glBindBuffer(GL_ARRAY_BUFFER, mesh.vertexBuffers[i].id);
+                                        glVertexAttribPointer(attrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
                                         glEnableVertexAttribArray(attrib);
+                                        i++;
                                 }
 
                                 validate(program);
+                                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.indices.id);
                                 glDrawElements(GL_TRIANGLES,
                                                mesh.indicesCount,
                                                GL_UNSIGNED_INT,
@@ -503,30 +548,17 @@ extern void render(uint64_t time_micros)
         };
 
         // user defined primitives library
-        struct Rect {
-                float x;
-                float y;
-                float width;
-                float height;
-        };
-
         auto quad = [](Rect coords, Rect uvcoords) -> GeometryDef {
                 auto geometry = GeometryDef {};
 
                 geometry.arrayCount = 2;
-                geometry.data.reserve(sizeof(coords) + sizeof(uvcoords));
+                geometry.data.resize(sizeof(QuadDefinerParams));
 
-                char* memory = &geometry.data.front();
-                Rect* coordsPtr = reinterpret_cast<Rect*> (memory + 0);
-                Rect* uvcoordsPtr = reinterpret_cast<Rect*> (memory + sizeof(*coordsPtr));
-                *coordsPtr = coords;
-                *uvcoordsPtr = uvcoords;
-#if 0
-                geometry.definer = [](BufferResource const& elementBuffer,
-                                      BufferResource const* arrays[],
-                                      char* data)
-                {}
-#endif
+                auto params = reinterpret_cast<QuadDefinerParams*> (&geometry.data.front());
+                *params = { .coords = coords, .uvcoords = uvcoords };
+
+                geometry.definer = quadDefiner;
+
                 return geometry;
         };
 
@@ -538,9 +570,9 @@ extern void render(uint64_t time_micros)
                 .vertexShader = vertexShaderFromFile("main.vs"),
                 .fragmentShader = fragmentShaderFromFile("main.fs")
         }, {
-                .textures = { texture(64, 64, perlinNoisePixelFiller) }
+                .textures = { texture(128, 128, perlinNoisePixelFiller) }
         },
-        quad({ .x = 1.0, .y = -1.0, .width = 2.0, .height = 2.0 },
+        quad({ .x = -0.80, .y = -.80, .width = 1.6, .height = 1.6 },
         { .x = 0.0, .y = 0.0, .width = 1.0, .height = 1.0 })
             );
 }
@@ -582,8 +614,8 @@ extern void render_next_gl3(uint64_t time_micros)
                         });
 
                         {
-                                int const width = 64;
-                                int const height = 64;
+                                int const width = 8;
+                                int const height = 8;
 
                                 withTexture(quadTexture,
                                 []() {
@@ -610,8 +642,6 @@ extern void render_next_gl3(uint64_t time_micros)
 
         tasks.run();
 
-        render(time_micros);
-
         auto const& program = resources.mainShader;
         if (program.id > 0) {
                 withShaderProgram(program, []() {
@@ -623,6 +653,8 @@ extern void render_next_gl3(uint64_t time_micros)
                         });
                 });
         }
+
+        render(time_micros);
 }
 
 int main()
