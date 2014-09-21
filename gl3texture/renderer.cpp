@@ -9,6 +9,36 @@ FrameSeriesResource makeFrameSeries()
         return estd::make_unique<FrameSeries>();
 }
 
+namespace
+{
+struct ProgramBindings {
+        std::vector<GLint> textureUniforms;
+        std::vector<GLint> arrayAttribs;
+};
+}
+
+ProgramBindings programBindings(ShaderProgramResource const& program,
+                                ProgramInputs const& inputs)
+{
+        auto bindings = ProgramBindings {};
+
+        std::transform(std::begin(inputs.textures),
+                       std::end(inputs.textures),
+                       std::back_inserter(bindings.textureUniforms),
+        [&program](ProgramInputs::TextureInput const& element) {
+                return glGetUniformLocation(program.id, element.name.c_str());
+        });
+
+        std::transform(std::begin(inputs.attribs),
+                       std::end(inputs.attribs),
+                       std::back_inserter(bindings.arrayAttribs),
+        [&program](ProgramInputs::AttribArrayInput const& element) {
+                return glGetAttribLocation(program.id, element.name.c_str());
+        });
+
+        return bindings;
+};
+
 void drawOne(FrameSeries& output,
              Program programDef,
              ProgramInputs inputs,
@@ -26,6 +56,7 @@ void drawOne(FrameSeries& output,
         auto const& program = output.program(programDef);
         withShaderProgram(program,
         [&output,&inputs,&program,&geometryDef]() {
+                auto vars = programBindings(program, inputs);
                 auto textureTargets = std::vector<GLenum> {};
                 {
                         auto i = 0;
@@ -39,10 +70,7 @@ void drawOne(FrameSeries& output,
                                 glActiveTexture(target);
                                 glBindTexture(GL_TEXTURE_2D, texture.id);
 
-                                // program binding
-                                auto textureUniform = glGetUniformLocation(program.id,
-                                                      textureInput.name.c_str());
-                                glUniform1i(textureUniform, unit);
+                                glUniform1i(vars.textureUniforms[i], unit);
                                 i++;
                                 OGL_TRACE;
                         }
@@ -51,14 +79,8 @@ void drawOne(FrameSeries& output,
                 auto const& mesh = output.mesh(geometryDef);
 
                 // draw here
-                withVertexArray(mesh.vertexArray, [&program,&inputs,&mesh]() {
-                        auto vertexAttribVars = std::vector<GLint> {};
-                        std::transform(std::begin(inputs.attribs),
-                                       std::end(inputs.attribs),
-                                       std::back_inserter(vertexAttribVars),
-                        [&program](ProgramInputs::AttribArrayInput const& element) {
-                                return glGetAttribLocation(program.id, element.name.c_str());
-                        });
+                withVertexArray(mesh.vertexArray, [&program,&vars,&mesh]() {
+                        auto& vertexAttribVars = vars.arrayAttribs;
 
                         int i = 0;
                         for (auto attrib : vertexAttribVars) {
