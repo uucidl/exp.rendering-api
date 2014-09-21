@@ -1,10 +1,11 @@
 #include "renderer.hpp"
 
 #include "../ref/main_types.h"
-#include "../src/glresource_types.hpp"
-#include "../src/gltexturing.hpp"
 #include "../src/gldebug.hpp"
+#include "../src/glresource_types.hpp"
 #include "../src/glshaders.hpp"
+#include "../src/gltexturing.hpp"
+#include "../src/hstd.hpp"
 
 #include <micros/api.h>
 
@@ -265,29 +266,33 @@ extern void render(uint64_t time_micros)
                 auto loaded = lookupFC(loadedFiles, path);
                 if (loaded)
                 {
-                        return { .id = loaded - &loadedFiles.front() };
+                        return { HSTD_DFIELD(id, loaded - &loadedFiles.front()) };
                 }
 
                 auto loading = lookupFC(loadingFiles, path);
                 if (!loading)
                 {
-                        loadingFiles.push_back({ .state = -1, .path = path });
+                        loadingFiles.push_back({
+                                HSTD_DFIELD(state, -1),
+                                HSTD_DFIELD(path, path),
+                                HSTD_DFIELD(content,"")
+                        });
                         loadFile(*fileLoader.get(), path,
                         [=](std::string const& content) {
                                 auto loading = lookupFC(loadingFiles, path);
                                 loading->content = content;
                                 loading->state = 0;
                         });
-                        return { .id = -1 };
+                        return { HSTD_DFIELD(id, -1) };
                 }
 
                 if (loading->state == 0)
                 {
                         loadedFiles.push_back(*loading);
-                        return { .id = static_cast<long>(loadedFiles.size() - 1) };
+                        return { HSTD_DFIELD(id, static_cast<long>(loadedFiles.size() - 1)) };
                 }
 
-                return { .id = -1 };
+                return { HSTD_DFIELD(id, -1) };
         };
 
         // prototype for a new render code
@@ -299,7 +304,7 @@ extern void render(uint64_t time_micros)
                         return VertexShader {};
                 }
 
-                return VertexShader { .source = loadedFiles[fh.id].content };
+                return VertexShader { HSTD_DFIELD(source, loadedFiles[fh.id].content) };
         };
 
         auto fragmentShaderFromFile = [=](std::string filename) {
@@ -308,7 +313,7 @@ extern void render(uint64_t time_micros)
                         return FragmentShader {};
                 }
 
-                return FragmentShader { .source = loadedFiles[fh.id].content };
+                return FragmentShader { HSTD_DFIELD(source, loadedFiles[fh.id].content) };
         };
 
         // drawing infrastructure
@@ -321,7 +326,10 @@ extern void render(uint64_t time_micros)
                 geometry.data.resize(sizeof(QuadDefinerParams));
 
                 auto params = reinterpret_cast<QuadDefinerParams*> (&geometry.data.front());
-                *params = { .coords = coords, .uvcoords = uvcoords };
+                *params = {
+                        HSTD_DFIELD(coords, coords),
+                        HSTD_DFIELD(uvcoords, uvcoords)
+                };
 
                 geometry.definer = quadDefiner;
 
@@ -343,23 +351,32 @@ extern void render(uint64_t time_micros)
         };
 
         drawOne(*output, {
-                .vertexShader = vertexShaderFromFile("main.vs"),
-                .fragmentShader = fragmentShaderFromFile("main.fs")
+                HSTD_DFIELD(vertexShader, vertexShaderFromFile("main.vs")),
+                HSTD_DFIELD(fragmentShader, fragmentShaderFromFile("main.fs"))
         }, {
-                .attribs = {
-                        { .name = "position" },
-                        { .name = "texcoord" },
+                {
+                        { "position" },
+                        { "texcoord" },
                 },
-                .textures = {
+                {
                         {
-                                .name = "tex0",
-                                .content = texture(128, 128, perlinNoisePixelFiller)
+                                HSTD_DFIELD(name, "tex0"),
+                                HSTD_DFIELD(content, texture(128, 128, perlinNoisePixelFiller))
                         }
                 }
         }
         ,
-        quad({ .x = (float)(-0.80 + 0.15 * sin(time_micros / 100000.0)), .y = -.80, .width = 1.6, .height = 1.6 },
-        { .x = 0.0, .y = 0.0, .width = 1.0, .height = 1.0 })
+        quad({
+                HSTD_DFIELD(x, (float)(-0.80 + 0.15 * sin(time_micros / 100000.0))),
+                HSTD_DFIELD(y, -.80),
+                HSTD_DFIELD(width, 1.6),
+                HSTD_DFIELD(height, 1.6)
+        }, {
+                HSTD_DFIELD(x, 0.0),
+                HSTD_DFIELD(y, 0.0),
+                HSTD_DFIELD(width, 1.0),
+                HSTD_DFIELD(height, 1.0)
+        })
                );
 }
 
