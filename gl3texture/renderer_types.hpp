@@ -38,72 +38,6 @@ public:
                 std::vector<GLuint> vertexBuffers;
         };
 
-        // returns index to use (and create an entry if missing)
-        template <typename ResourceDef>
-        size_t findOrCreateDef(std::vector<ResourceDef>& definitions,
-                               ResourceDef const& def,
-                               std::function<bool(ResourceDef const&)> isDef,
-                               size_t firstRecyclableIndex)
-        {
-                auto existing =
-                        std::find_if(std::begin(definitions),
-                                     std::end(definitions),
-                                     isDef);
-
-                if (existing != std::end(definitions)) {
-                        return &(*existing) - &definitions.front();
-                } else {
-                        auto index = firstRecyclableIndex;
-                        if (index >= definitions.size()) {
-                                definitions.resize(1 + index);
-
-                        }
-                        definitions[index] = def;
-                        return firstRecyclableIndex;
-                }
-        }
-
-        template <typename ResourceDef>
-        struct RecyclingHeap {
-                size_t firstInactiveIndex;
-                size_t firstRecyclableIndex;
-                std::vector<ResourceDef>& definitions;
-        };
-
-        template <typename ResourceDef>
-        void reset(RecyclingHeap<ResourceDef>& heap)
-        {
-                heap.firstRecyclableIndex = heap.firstInactiveIndex;
-                heap.firstInactiveIndex = 0;
-        }
-
-        template <typename ResourceDef>
-        size_t findOrCreate(RecyclingHeap<ResourceDef>& heap,
-                            ResourceDef const& def,
-                            std::function<bool(ResourceDef const&)> isDef,
-                            std::function<void(ResourceDef const&,size_t)> createAt,
-                            std::function<void(size_t,size_t)> swap)
-        {
-                auto index = findOrCreateDef(heap.definitions,
-                                             def,
-                                             isDef,
-                                             heap.firstRecyclableIndex);
-                if (index == heap.firstRecyclableIndex) {
-                        meshHeap.firstRecyclableIndex++;
-                        createAt(def, index);
-                }
-
-                auto newIndex = heap.firstInactiveIndex;
-                if (newIndex != index) {
-                        std::swap(heap.definitions.at(newIndex), heap.definitions.at(index));
-                        swap(newIndex, index);
-                }
-
-                heap.firstInactiveIndex = newIndex + 1;
-
-                return newIndex;
-        }
-
         MeshMaterials mesh(GeometryDef geometryDef)
         {
                 auto meshIndex = findOrCreate<GeometryDef>
@@ -222,6 +156,72 @@ public:
         }
 
 private:
+        // returns index to use (and create an entry if missing)
+        template <typename ResourceDef>
+        size_t findOrCreateDef(std::vector<ResourceDef>& definitions,
+                               ResourceDef const& def,
+                               std::function<bool(ResourceDef const&)> isDef,
+                               size_t firstRecyclableIndex)
+        {
+                auto existing =
+                        std::find_if(std::begin(definitions),
+                                     std::end(definitions),
+                                     isDef);
+
+                if (existing != std::end(definitions)) {
+                        return &(*existing) - &definitions.front();
+                } else {
+                        auto index = firstRecyclableIndex;
+                        if (index >= definitions.size()) {
+                                definitions.resize(1 + index);
+
+                        }
+                        definitions[index] = def;
+                        return firstRecyclableIndex;
+                }
+        }
+
+        template <typename ResourceDef>
+        struct RecyclingHeap {
+                size_t firstInactiveIndex;
+                size_t firstRecyclableIndex;
+                std::vector<ResourceDef>& definitions;
+        };
+
+        template <typename ResourceDef>
+        void reset(RecyclingHeap<ResourceDef>& heap)
+        {
+                heap.firstRecyclableIndex = heap.firstInactiveIndex;
+                heap.firstInactiveIndex = 0;
+        }
+
+        template <typename ResourceDef>
+        size_t findOrCreate(RecyclingHeap<ResourceDef>& heap,
+                            ResourceDef const& def,
+                            std::function<bool(ResourceDef const&)> isDef,
+                            std::function<void(ResourceDef const&,size_t)> createAt,
+                            std::function<void(size_t,size_t)> swap)
+        {
+                auto index = findOrCreateDef(heap.definitions,
+                                             def,
+                                             isDef,
+                                             heap.firstRecyclableIndex);
+                if (index == heap.firstRecyclableIndex) {
+                        meshHeap.firstRecyclableIndex++;
+                        createAt(def, index);
+                }
+
+                auto newIndex = heap.firstInactiveIndex;
+                if (newIndex != index) {
+                        std::swap(heap.definitions.at(newIndex), heap.definitions.at(index));
+                        swap(newIndex, index);
+                }
+
+                heap.firstInactiveIndex = newIndex + 1;
+
+                return newIndex;
+        }
+
         struct Mesh {
                 VertexArrayResource vertexArray;
                 size_t indicesCount = 0;
