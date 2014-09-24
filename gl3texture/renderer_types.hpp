@@ -101,9 +101,10 @@ public:
 
                         auto& texture = textures[index];
                         withTexture(texture,
-                        [&textureDef]() {
-                                defineNonMipmappedARGB32Texture(textureDef.width, textureDef.height,
-                                                                textureDef.pixelFiller);
+                        [&def]() {
+                                defineNonMipmappedARGB32Texture(def.width,
+                                                                def.height,
+                                                                def.pixelFiller);
                         });
                         OGL_TRACE;
                         textureCreations++;
@@ -207,7 +208,7 @@ private:
                                              isDef,
                                              heap.firstRecyclableIndex);
                 if (index == heap.firstRecyclableIndex) {
-                        meshHeap.firstRecyclableIndex++;
+                        heap.firstRecyclableIndex++;
                         createAt(def, index);
                 }
 
