@@ -211,9 +211,9 @@ struct QuadDefinerParams {
 static
 size_t quadDefiner(BufferResource const& elementBuffer,
                    BufferResource const arrays[],
-                   char* data)
+                   char const* data)
 {
-        auto params = reinterpret_cast<QuadDefinerParams*> (data);
+        auto params = reinterpret_cast<QuadDefinerParams const*> (data);
         auto& coords = params->coords;
         auto& uvcoords = params->uvcoords;
 

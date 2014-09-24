@@ -49,7 +49,7 @@ struct GeometryDef {
         // @returns indices count
         size_t (*definer)(BufferResource const& elementBuffer,
                           BufferResource const arrays[],
-                          char* data) = nullptr;
+                          char const* data) = nullptr;
 };
 
 using FrameSeriesResource =
