@@ -67,10 +67,8 @@ void drawOne(FrameSeries& output,
                                 auto target = GL_TEXTURE0 + unit;
 
                                 textureTargets.emplace_back(target);
-                                OGL_TRACE;
                                 glActiveTexture(target);
                                 glBindTexture(GL_TEXTURE_2D, texture.textureId);
-
                                 glUniform1i(vars.textureUniforms[i], unit);
                                 i++;
                                 OGL_TRACE;
