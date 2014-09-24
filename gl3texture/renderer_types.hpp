@@ -26,8 +26,8 @@ public:
         {
                 // we should invalidate arrays so as to garbage
                 // collect / recycle the now un-needed definitions
-                meshHeap.firstRecyclableIndex = meshHeap.firstInactiveIndex;
-                meshHeap.firstInactiveIndex = 0;
+                reset(meshHeap);
+                reset(textureHeap);
         }
 
         struct MeshMaterials {
@@ -70,6 +70,13 @@ public:
         };
 
         template <typename ResourceDef>
+        void reset(RecyclingHeap<ResourceDef>& heap)
+        {
+                heap.firstRecyclableIndex = heap.firstInactiveIndex;
+                heap.firstInactiveIndex = 0;
+        }
+
+        template <typename ResourceDef>
         size_t findOrCreate(RecyclingHeap<ResourceDef>& heap,
                             ResourceDef const& def,
                             std::function<bool(ResourceDef const&)> isDef,
@@ -89,8 +96,9 @@ public:
                 if (newIndex != index) {
                         std::swap(heap.definitions.at(newIndex), heap.definitions.at(index));
                         swap(newIndex, index);
-                        heap.firstInactiveIndex++;
                 }
+
+                heap.firstInactiveIndex = newIndex + 1;
 
                 return newIndex;
         }
@@ -146,17 +154,14 @@ public:
 
         TextureMaterials texture(TextureDef textureDef)
         {
-                auto firstRecyclable = textureDefs.size();
-                auto index = findOrCreateDef<TextureDef>(textureDefs,
-                                textureDef,
+                auto index = findOrCreate<TextureDef>(textureHeap,
+                                                      textureDef,
                 [&textureDef](TextureDef const& element) {
                         return element.width == textureDef.width
                                && element.height == textureDef.height
                                && element.pixelFiller == textureDef.pixelFiller;
                 },
-                firstRecyclable);
-
-                if (index >= firstRecyclable) {
+                [=](TextureDef const& def, size_t index) {
                         textures.resize(index + 1);
 
                         auto& texture = textures[index];
@@ -165,10 +170,12 @@ public:
                                 defineNonMipmappedARGB32Texture(textureDef.width, textureDef.height,
                                                                 textureDef.pixelFiller);
                         });
-
                         OGL_TRACE;
                         textureCreations++;
-                }
+                },
+                [=](size_t indexA, size_t indexB) {
+                        std::swap(textures[indexA], textures[indexB]);
+                });
 
                 return { textures[index].id };
         }
@@ -226,6 +233,7 @@ private:
 
         std::vector<TextureResource> textures;
         std::vector<TextureDef> textureDefs;
+        RecyclingHeap<TextureDef> textureHeap = { 0, 0, textureDefs };
         long textureCreations = 0;
 
         std::vector<VertexShaderResource> vertexShaders;
