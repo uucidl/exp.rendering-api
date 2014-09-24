@@ -28,6 +28,7 @@ public:
                 // collect / recycle the now un-needed definitions
                 reset(meshHeap);
                 reset(textureHeap);
+                reset(programHeap);
         }
 
         struct MeshMaterials {
@@ -186,9 +187,8 @@ public:
 
         ShaderProgramMaterials program(Program programDef)
         {
-                auto firstRecyclable = programDefs.size();
-                auto index = findOrCreateDef<Program>
-                             (programDefs,
+                auto index = findOrCreate<Program>
+                             (programHeap,
                               programDef,
                 [&programDef](Program const& element) {
                         return element.fragmentShader.source
@@ -196,9 +196,7 @@ public:
                                && element.vertexShader.source
                                == programDef.vertexShader.source;
                 },
-                firstRecyclable);
-
-                if (index >= firstRecyclable) {
+                [=](Program const& def, size_t index) {
                         programs.resize(index + 1);
                         vertexShaders.resize(index + 1);
                         fragmentShaders.resize(index + 1);
@@ -213,7 +211,12 @@ public:
 
                         OGL_TRACE;
                         programCreations++;
-                }
+                },
+                [=](size_t indexA, size_t indexB) {
+                        std::swap(programs[indexA], programs[indexB]);
+                        std::swap(vertexShaders[indexA], vertexShaders[indexB]);
+                        std::swap(fragmentShaders[indexA], fragmentShaders[indexB]);
+                });
 
                 return { programs[index].id };
         }
@@ -240,5 +243,6 @@ private:
         std::vector<FragmentShaderResource> fragmentShaders;
         std::vector<ShaderProgramResource> programs;
         std::vector<Program> programDefs;
+        RecyclingHeap<Program> programHeap = { 0, 0, programDefs };
         long programCreations = 0;
 };
