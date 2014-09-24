@@ -26,8 +26,8 @@ public:
         {
                 // we should invalidate arrays so as to garbage
                 // collect / recycle the now un-needed definitions
-                firstRecyclableMesh = firstInactiveMesh;
-                firstInactiveMesh = 0;
+                meshHeap.firstRecyclableIndex = meshHeap.firstInactiveIndex;
+                meshHeap.firstInactiveIndex = 0;
         }
 
         struct MeshMaterials {
@@ -62,39 +62,68 @@ public:
                 }
         }
 
+        template <typename ResourceDef>
+        struct RecyclingHeap {
+                size_t firstInactiveIndex;
+                size_t firstRecyclableIndex;
+                std::vector<ResourceDef>& definitions;
+        };
+
+        template <typename ResourceDef>
+        size_t findOrCreate(RecyclingHeap<ResourceDef>& heap,
+                            ResourceDef const& def,
+                            std::function<bool(ResourceDef const&)> isDef,
+                            std::function<void(ResourceDef const&,size_t)> createAt,
+                            std::function<void(size_t,size_t)> swap)
+        {
+                auto index = findOrCreateDef(heap.definitions,
+                                             def,
+                                             isDef,
+                                             heap.firstRecyclableIndex);
+                if (index == heap.firstRecyclableIndex) {
+                        meshHeap.firstRecyclableIndex++;
+                        createAt(def, index);
+                }
+
+                auto newIndex = heap.firstInactiveIndex;
+                if (newIndex != index) {
+                        std::swap(heap.definitions.at(newIndex), heap.definitions.at(index));
+                        swap(newIndex, index);
+                        heap.firstInactiveIndex++;
+                }
+
+                return newIndex;
+        }
+
         MeshMaterials mesh(GeometryDef geometryDef)
         {
-                auto meshIndex = findOrCreateDef<GeometryDef>
-                                 (meshDefs,
+                auto meshIndex = findOrCreate<GeometryDef>
+                                 (meshHeap,
                                   geometryDef,
                 [&geometryDef](GeometryDef const& element) {
                         return element.data == geometryDef.data
                                && element.definer == geometryDef.definer
                                && element.arrayCount == element.arrayCount;
                 },
-                firstRecyclableMesh);
-
-                if (meshIndex == firstRecyclableMesh) {
-                        firstRecyclableMesh++;
+                [=](GeometryDef const& def, size_t meshIndex) {
                         meshes.resize(1 + meshIndex);
 
                         auto& mesh = meshes[meshIndex];
-                        if (geometryDef.definer) {
-                                mesh.vertexBuffers.resize(geometryDef.arrayCount);
-                                mesh.indicesCount = geometryDef.definer
+                        if (def.definer) {
+                                mesh.vertexBuffers.resize(def.arrayCount);
+                                mesh.indicesCount = def.definer
                                                     (mesh.indices,
                                                      &mesh.vertexBuffers.front(),
-                                                     &geometryDef.data.front());
+                                                     &def.data.front());
                         }
 
                         meshCreations++;
-                }
+                },
+                [=](size_t indexA, size_t indexB) {
+                        std::swap(meshes.at(indexA), meshes.at(indexB));
+                });
 
-                std::swap(meshes.at(firstInactiveMesh), meshes.at(meshIndex));
-                std::swap(meshDefs.at(firstInactiveMesh), meshDefs.at(meshIndex));
-                firstInactiveMesh++;
-
-                auto const& mesh = meshes.at(firstInactiveMesh - 1);
+                auto const& mesh = meshes.at(meshIndex);
                 auto vertexBufferIds = std::vector<GLuint> {};
                 std::transform(std::begin(mesh.vertexBuffers),
                                std::end(mesh.vertexBuffers),
@@ -119,7 +148,7 @@ public:
         {
                 auto firstRecyclable = textureDefs.size();
                 auto index = findOrCreateDef<TextureDef>(textureDefs,
-                                                      textureDef,
+                                textureDef,
                 [&textureDef](TextureDef const& element) {
                         return element.width == textureDef.width
                                && element.height == textureDef.height
@@ -192,9 +221,8 @@ private:
 
         std::vector<Mesh> meshes;
         std::vector<GeometryDef> meshDefs;
+        RecyclingHeap<GeometryDef> meshHeap = { 0, 0, meshDefs };
         long meshCreations = 0;
-        size_t firstInactiveMesh = 0;
-        size_t firstRecyclableMesh = 0;
 
         std::vector<TextureResource> textures;
         std::vector<TextureDef> textureDefs;
