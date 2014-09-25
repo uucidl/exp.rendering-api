@@ -13,7 +13,12 @@ namespace
 {
 struct ProgramBindings {
         std::vector<GLint> textureUniforms;
-        std::vector<GLint> arrayAttribs;
+
+        struct ArrayAttrib {
+                GLint id;
+                int componentCount;
+        };
+        std::vector<ArrayAttrib> arrayAttribs;
 };
 }
 
@@ -33,8 +38,12 @@ ProgramBindings programBindings(FrameSeries::ShaderProgramMaterials const&
         std::transform(std::begin(inputs.attribs),
                        std::end(inputs.attribs),
                        std::back_inserter(bindings.arrayAttribs),
-        [&program](ProgramInputs::AttribArrayInput const& element) {
-                return glGetAttribLocation(program.programId, element.name.c_str());
+                       [&program](ProgramInputs::AttribArrayInput const& element) ->
+        ProgramBindings::ArrayAttrib {
+                return {
+                        glGetAttribLocation(program.programId, element.name.c_str()),
+                        element.componentCount
+                };
         });
 
         return bindings;
@@ -86,9 +95,10 @@ void drawOne(FrameSeries& output,
                         for (auto attrib : vertexAttribVars) {
 
                                 glBindBuffer(GL_ARRAY_BUFFER, mesh.vertexBuffers[i]);
-                                glVertexAttribPointer(attrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
+                                glVertexAttribPointer(attrib.id, attrib.componentCount, GL_FLOAT, GL_FALSE, 0,
+                                                      0);
 
-                                glEnableVertexAttribArray(attrib);
+                                glEnableVertexAttribArray(attrib.id);
                                 i++;
                         }
 
@@ -99,7 +109,7 @@ void drawOne(FrameSeries& output,
                                        0);
 
                         for (auto attrib : vertexAttribVars) {
-                                glDisableVertexAttribArray(attrib);
+                                glDisableVertexAttribArray(attrib.id);
                         }
                 }
                 glBindVertexArray(0);
