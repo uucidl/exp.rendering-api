@@ -41,7 +41,7 @@ ProgramBindings programBindings(FrameSeries::ShaderProgramMaterials const&
 };
 
 void drawOne(FrameSeries& output,
-             Program programDef,
+             ProgramDef programDef,
              ProgramInputs inputs,
              GeometryDef geometryDef)
 {

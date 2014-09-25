@@ -301,19 +301,19 @@ extern void render(uint64_t time_micros)
         auto vertexShaderFromFile = [=](std::string filename) {
                 auto fh = loadFileContent(filename);
                 if (fh.id < 0) {
-                        return VertexShader {};
+                        return VertexShaderDef {};
                 }
 
-                return VertexShader { HSTD_DFIELD(source, loadedFiles[fh.id].content) };
+                return VertexShaderDef { HSTD_DFIELD(source, loadedFiles[fh.id].content) };
         };
 
         auto fragmentShaderFromFile = [=](std::string filename) {
                 auto fh = loadFileContent(filename);
                 if (fh.id < 0) {
-                        return FragmentShader {};
+                        return FragmentShaderDef {};
                 }
 
-                return FragmentShader { HSTD_DFIELD(source, loadedFiles[fh.id].content) };
+                return FragmentShaderDef { HSTD_DFIELD(source, loadedFiles[fh.id].content) };
         };
 
         // drawing infrastructure
@@ -355,8 +355,8 @@ extern void render(uint64_t time_micros)
                 HSTD_DFIELD(fragmentShader, fragmentShaderFromFile("main.fs"))
         }, {
                 {
-                        { "position" },
-                        { "texcoord" },
+                        { "position", 2 },
+                        { "texcoord", 2 },
                 },
                 {
                         {

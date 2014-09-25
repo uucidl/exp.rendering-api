@@ -1,5 +1,7 @@
 #pragma once
 
+#include "renderer.hpp"
+
 #include "../src/gldebug.hpp"
 #include "../src/glresource_types.hpp"
 #include "../src/glshaders.hpp"
@@ -120,18 +122,18 @@ public:
                 GLuint programId;
         };
 
-        ShaderProgramMaterials program(Program programDef)
+        ShaderProgramMaterials program(ProgramDef programDef)
         {
-                auto index = findOrCreate<Program>
+                auto index = findOrCreate<ProgramDef>
                              (programHeap,
                               programDef,
-                [&programDef](Program const& element) {
+                [&programDef](ProgramDef const& element) {
                         return element.fragmentShader.source
                                == programDef.fragmentShader.source
                                && element.vertexShader.source
                                == programDef.vertexShader.source;
                 },
-                [=](Program const& def, size_t index) {
+                [=](ProgramDef const& def, size_t index) {
                         programs.resize(index + 1);
                         vertexShaders.resize(index + 1);
                         fragmentShaders.resize(index + 1);
@@ -243,7 +245,7 @@ private:
         std::vector<VertexShaderResource> vertexShaders;
         std::vector<FragmentShaderResource> fragmentShaders;
         std::vector<ShaderProgramResource> programs;
-        std::vector<Program> programDefs;
-        RecyclingHeap<Program> programHeap = { 0, 0, programDefs };
+        std::vector<ProgramDef> programDefs;
+        RecyclingHeap<ProgramDef> programHeap = { 0, 0, programDefs };
         long programCreations = 0;
 };

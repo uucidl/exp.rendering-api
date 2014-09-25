@@ -1,3 +1,5 @@
+#pragma once
+
 #include <functional>
 #include <string>
 #include <vector>
@@ -9,17 +11,17 @@ class BufferResource;
 
 // value types
 
-struct VertexShader {
+struct VertexShaderDef {
         std::string source;
 };
 
-struct FragmentShader {
+struct FragmentShaderDef {
         std::string source;
 };
 
-struct Program {
-        VertexShader vertexShader;
-        FragmentShader fragmentShader;
+struct ProgramDef {
+        VertexShaderDef vertexShader;
+        FragmentShaderDef fragmentShader;
 };
 
 struct TextureDef {
@@ -31,6 +33,7 @@ struct TextureDef {
 struct ProgramInputs {
         struct AttribArrayInput {
                 std::string name;
+                int componentCount;
         };
         struct TextureInput {
                 std::string name;
@@ -38,7 +41,6 @@ struct ProgramInputs {
         };
 
         std::vector<AttribArrayInput> attribs;
-
         std::vector<TextureInput> textures;
 };
 
@@ -57,6 +59,6 @@ using FrameSeriesResource =
 FrameSeriesResource makeFrameSeries();
 
 void drawOne(FrameSeries& output,
-             Program programDef,
+             ProgramDef programDef,
              ProgramInputs inputs,
              GeometryDef geometryDef);
