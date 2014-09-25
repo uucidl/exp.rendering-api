@@ -363,11 +363,19 @@ extern void render(uint64_t time_micros)
                                 HSTD_DFIELD(name, "tex0"),
                                 HSTD_DFIELD(content, texture(128, 128, perlinNoisePixelFiller))
                         }
+                },
+                {
+                        {
+                                "g_color", { 0.2, 0.4, (float)(0.1 + 0.3 * sin(time_micros / 1000000.0)), 0.0 },
+                        },
+                        {
+                                "translation", { (float)(0.15 * sin(time_micros / 100000.0)), 0.0, 0.0, 0.0 }
+                        }
                 }
         }
         ,
         quad({
-                HSTD_DFIELD(x, (float)(-0.80 + 0.15 * sin(time_micros / 100000.0))),
+                HSTD_DFIELD(x, -0.80),
                 HSTD_DFIELD(y, -.80),
                 HSTD_DFIELD(width, 1.6),
                 HSTD_DFIELD(height, 1.6)
