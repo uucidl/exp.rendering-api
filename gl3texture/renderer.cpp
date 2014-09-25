@@ -19,6 +19,8 @@ struct ProgramBindings {
                 int componentCount;
         };
         std::vector<ArrayAttrib> arrayAttribs;
+
+        std::vector<GLint> floatValuesUniforms;
 };
 }
 
@@ -46,6 +48,14 @@ ProgramBindings programBindings(FrameSeries::ShaderProgramMaterials const&
                 };
         });
 
+        std::transform(std::begin(inputs.floatValues),
+                       std::end(inputs.floatValues),
+                       std::back_inserter(bindings.floatValuesUniforms),
+        [&program](ProgramInputs::FloatInput const& element) {
+                return glGetUniformLocation(program.programId, element.name.c_str());
+        });
+
+
         return bindings;
 };
 
@@ -72,14 +82,55 @@ void drawOne(FrameSeries& output,
                         auto i = 0;
                         for (auto& textureInput : inputs.textures) {
                                 auto unit = i;
+                                auto uniformId = vars.textureUniforms[i];
+                                i++;
+
+                                if (uniformId < 0) {
+                                        continue;
+                                }
                                 auto const& texture = output.texture(textureInput.content);
                                 auto target = GL_TEXTURE0 + unit;
-
                                 textureTargets.emplace_back(target);
                                 glActiveTexture(target);
                                 glBindTexture(GL_TEXTURE_2D, texture.textureId);
-                                glUniform1i(vars.textureUniforms[i], unit);
+                                glUniform1i(uniformId, unit);
+                                OGL_TRACE;
+                        }
+                }
+
+                {
+                        auto i = 0;
+                        for (auto& floatInput : inputs.floatValues) {
+                                auto uniformId = vars.floatValuesUniforms[i];
                                 i++;
+
+                                auto const& values = floatInput.values;
+                                switch (values.size()) {
+                                case 4:
+                                        glUniform4f(uniformId,
+                                                    values[0],
+                                                    values[1],
+                                                    values[2],
+                                                    values[3]);
+                                        break;
+                                case 3:
+                                        glUniform3f(uniformId,
+                                                    values[0],
+                                                    values[1],
+                                                    values[2]);
+                                        break;
+                                case 2:
+                                        glUniform2f(uniformId,
+                                                    values[0],
+                                                    values[1]);
+                                        break;
+                                case 1:
+                                        glUniform1f(uniformId,
+                                                    values[0]);
+                                        break;
+                                default:
+                                        printf("invalid number of float inputs: %lu\n", values.size());
+                                }
                                 OGL_TRACE;
                         }
                 }

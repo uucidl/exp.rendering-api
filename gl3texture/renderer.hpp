@@ -39,9 +39,14 @@ struct ProgramInputs {
                 std::string name;
                 TextureDef content;
         };
+        struct FloatInput {
+                std::string name;
+                std::vector<float> values;
+        };
 
         std::vector<AttribArrayInput> attribs;
         std::vector<TextureInput> textures;
+        std::vector<FloatInput> floatValues;
 };
 
 struct GeometryDef {
