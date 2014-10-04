@@ -1,6 +1,6 @@
 #include "quad.hpp"
 
-#include "../src/glresource_types.hpp"
+#include "../gl3companion/glresource_types.hpp"
 
 #include "stb_perlin.h"
 

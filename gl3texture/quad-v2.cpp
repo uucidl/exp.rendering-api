@@ -1,9 +1,9 @@
-#include "../src/glresource_types.hpp"
-#include "../src/hstd.hpp"
-
 #include "main_types.hpp"
 #include "quad.hpp"
 #include "renderer.hpp"
+
+#include "../gl3companion/glresource_types.hpp"
+#include "../src/hstd.hpp"
 
 #include <cmath>
 

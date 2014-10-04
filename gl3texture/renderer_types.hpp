@@ -2,10 +2,10 @@
 
 #include "renderer.hpp"
 
-#include "../src/gldebug.hpp"
-#include "../src/glresource_types.hpp"
-#include "../src/glshaders.hpp"
-#include "../src/gltexturing.hpp"
+#include "../gl3companion/gldebug.hpp"
+#include "../gl3companion/glresource_types.hpp"
+#include "../gl3companion/glshaders.hpp"
+#include "../gl3companion/gltexturing.hpp"
 
 #include <vector>
 

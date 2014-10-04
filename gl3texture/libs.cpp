@@ -1,9 +1,9 @@
 // implementations
 
 #include "../ref/fs.cpp"
-#include "../src/glresources.cpp"
-#include "../src/glshaders.cpp"
-#include "../src/gltexturing.cpp"
+#include "../gl3companion/glresources.cpp"
+#include "../gl3companion/glshaders.cpp"
+#include "../gl3companion/gltexturing.cpp"
 
 #define STB_PERLIN_IMPLEMENTATION
 #include "stb_perlin.h"

@@ -2,12 +2,12 @@
 
 #include "compiler.hpp"
 #include "estd.hpp"
-#include "glresource_types.hpp"
-#include "gldebug.hpp"
-#include "glframebuffers.hpp"
-#include "glinlines.hpp"
-#include "glshaders.hpp"
-#include "gltexturing.hpp"
+#include "../gl3companion/glresource_types.hpp"
+#include "../gl3companion/gldebug.hpp"
+#include "../gl3companion/glframebuffers.hpp"
+#include "../gl3companion/glinlines.hpp"
+#include "../gl3companion/glshaders.hpp"
+#include "../gl3companion/gltexturing.hpp"
 
 BEGIN_NOWARN_BLOCK
 
