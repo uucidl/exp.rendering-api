@@ -142,7 +142,7 @@ extern void render_textured_quad_v2(uint64_t time_micros)
                 geometry.arrayCount = 2;
                 geometry.data.resize(sizeof(QuadDefinerParams));
 
-                auto params = reinterpret_cast<QuadDefinerParams*> (&geometry.data.front());
+                auto params = new (&geometry.data.front()) QuadDefinerParams;
                 *params = {
                         HSTD_DFIELD(coords, coords),
                         HSTD_DFIELD(uvcoords, uvcoords)
