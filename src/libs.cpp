@@ -6,7 +6,7 @@
 #include "../gl3companion/glframebuffers.cpp"
 #include "../gl3companion/glshaders.cpp"
 #include "../gl3companion/gltexturing.cpp"
-
+#include "../gl3texture/renderer.cpp"
 
 BEGIN_NOWARN_BLOCK
 
