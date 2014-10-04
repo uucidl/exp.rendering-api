@@ -1,4 +1,5 @@
 #include "razors.hpp"
+#include "razorsV2.hpp"
 
 #include <GL/glew.h>
 #include <micros/api.h>
@@ -33,9 +34,11 @@ extern void render_next_gl3(uint64_t time_micros)
 
         static struct Resources {
                 RazorsResource razors { makeRazors() };
+                RazorsV2Resource razorsV2 { makeRazorsV2() };
         } all;
 
         draw(*all.razors, time_micros / 1e3);
+        draw(*all.razorsV2, time_micros / 1e3);
 }
 
 extern int main()
