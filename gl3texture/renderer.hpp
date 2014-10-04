@@ -24,10 +24,13 @@ struct ProgramDef {
         FragmentShaderDef fragmentShader;
 };
 
+using TextureDefFn = void (*)(uint32_t*,int,int, void const* data);
+
 struct TextureDef {
+        std::vector<char> data;
         int width = 0;
         int height = 0;
-        void (*pixelFiller)(uint32_t* pixels, int width, int height) = nullptr;
+        TextureDefFn pixelFiller = nullptr;
 };
 
 struct ProgramInputs {
@@ -56,7 +59,7 @@ struct GeometryDef {
         // @returns indices count
         size_t (*definer)(BufferResource const& elementBuffer,
                           BufferResource const arrays[],
-                          char const* data) = nullptr;
+                          void const* data) = nullptr;
 };
 
 using FrameSeriesResource =

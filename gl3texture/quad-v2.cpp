@@ -22,9 +22,9 @@ struct QuadDefinerParams {
 static
 size_t quadDefiner(BufferResource const& elementBuffer,
                    BufferResource const arrays[],
-                   char const* data)
+                   void const* data)
 {
-        auto params = reinterpret_cast<QuadDefinerParams const*> (data);
+        auto params = static_cast<QuadDefinerParams const*> (data);
         auto& coords = params->coords;
         auto& uvcoords = params->uvcoords;
 
@@ -37,6 +37,12 @@ size_t quadDefiner(BufferResource const& elementBuffer,
                            uvcoords.width, uvcoords.height);
 
         return indicesCount;
+}
+
+static void perlinTexture(uint32_t* pixels, int width, int height,
+                          void const* data)
+{
+        perlinNoisePixelFiller(pixels, width, height);
 }
 
 extern void render_textured_quad_v2(uint64_t time_micros)
@@ -151,13 +157,11 @@ extern void render_textured_quad_v2(uint64_t time_micros)
 
         static auto output = makeFrameSeries();
 
-        auto texture = [](int width, int height, void (*pixelFiller)(uint32_t*,int,
-        int)) {
+        auto texture = [](int width, int height, TextureDefFn const& fn) {
                 auto textureDef = TextureDef {};
                 textureDef.width = width;
                 textureDef.height = height;
-                textureDef.pixelFiller = pixelFiller;
-
+                textureDef.pixelFiller = fn;
                 return textureDef;
         };
 
@@ -172,7 +176,7 @@ extern void render_textured_quad_v2(uint64_t time_micros)
                 {
                         {
                                 HSTD_DFIELD(name, "tex0"),
-                                HSTD_DFIELD(content, texture(128, 128, perlinNoisePixelFiller))
+                                HSTD_DFIELD(content, texture(128, 128, perlinTexture))
                         }
                 },
                 {

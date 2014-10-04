@@ -94,7 +94,8 @@ public:
                 auto index = findOrCreate<TextureDef>(textureHeap,
                                                       textureDef,
                 [&textureDef](TextureDef const& element) {
-                        return element.width == textureDef.width
+                        return element.data == textureDef.data
+                               && element.width == textureDef.width
                                && element.height == textureDef.height
                                && element.pixelFiller == textureDef.pixelFiller;
                 },
@@ -106,7 +107,9 @@ public:
                         [&def]() {
                                 defineNonMipmappedARGB32Texture(def.width,
                                                                 def.height,
-                                                                def.pixelFiller);
+                                [&def](uint32_t* data, int width, int height) {
+                                        def.pixelFiller(data, width, height, &def.data.front());
+                                });
                         });
                         OGL_TRACE;
                         textureCreations++;
