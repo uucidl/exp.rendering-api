@@ -1,3 +1,7 @@
+#pragma once
+
+#include <string>
+
 static std::string defaultVS = R"SHADER(
 #version 150
 
