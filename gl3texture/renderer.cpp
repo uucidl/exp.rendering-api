@@ -104,103 +104,81 @@ void drawOne(FrameSeries& output,
                                 auto uniformId = vars.floatVectorsUniforms[i];
                                 i++;
 
+                                if (uniformId < 0) {
+                                        continue;
+                                }
+
                                 auto const& values = floatInput.values;
                                 auto const width  = values.size();
                                 auto const last_row = floatInput.last_row;
                                 if (last_row == 0) {
+                                        void (*set_many_vecn)(GLint location, GLsizei count,
+                                                              const GLfloat *value) = nullptr;
+
                                         switch (width) {
                                         case 4:
-                                                glUniform4fv(uniformId,
-                                                             1,
-                                                             &values.front());
+                                                set_many_vecn = glUniform4fv;
                                                 break;
                                         case 3:
-                                                glUniform3fv(uniformId,
-                                                             1,
-                                                             &values.front());
+                                                set_many_vecn = glUniform3fv;
                                                 break;
                                         case 2:
-                                                glUniform2fv(uniformId,
-                                                             1,
-                                                             &values.front());
+                                                set_many_vecn = glUniform2fv;
                                                 break;
                                         case 1:
-                                                glUniform1fv(uniformId,
-                                                             1,
-                                                             &values.front());
+                                                set_many_vecn = glUniform1fv;
                                                 break;
-                                        default:
+                                        }
+
+                                        if (!set_many_vecn) {
                                                 printf("invalid number of float inputs: %lu\n", width);
                                         }
-                                } else if (last_row == 1) {
-                                        switch (width) {
-                                        case 2:
-                                                glUniformMatrix2fv(uniformId,
-                                                                   1,
-                                                                   GL_TRUE,
-                                                                   &values.front());
+
+                                        set_many_vecn(uniformId, 1, &values.front());
+                                } else {
+                                        void (*set_many_matnm)(GLint location, GLsizei count, GLboolean tranpose,
+                                                               const GLfloat* value) = nullptr;
+
+                                        auto const rows = 1+last_row;
+                                        auto const columns = width / rows;
+
+                                        auto dim = (rows & 0xff) | ((columns & 0xff) << 8);
+                                        switch(dim) {
+                                        case 0x0202:
+                                                set_many_matnm = glUniformMatrix2fv;
                                                 break;
-                                        case 4:
-                                                glUniformMatrix4x2fv(uniformId,
-                                                                     1,
-                                                                     GL_TRUE,
-                                                                     &values.front());
+                                        case 0x0303:
+                                                set_many_matnm = glUniformMatrix3fv;
                                                 break;
-                                        case 3:
-                                                glUniformMatrix3x2fv(uniformId,
-                                                                     1,
-                                                                     GL_TRUE,
-                                                                     &values.front());
+                                        case 0x0404:
+                                                set_many_matnm = glUniformMatrix4fv;
                                                 break;
-                                        default:
-                                                printf("invalid number of float inputs: %lu, rows: %u\n", width, last_row);
+                                        case 0x0402:
+                                                set_many_matnm = glUniformMatrix4x2fv;
+                                                break;
+                                        case 0x0302:
+                                                set_many_matnm = glUniformMatrix3x2fv;
+                                                break;
+                                        case 0x0403:
+                                                set_many_matnm = glUniformMatrix4x3fv;
+                                                break;
+                                        case 0x0203:
+                                                set_many_matnm = glUniformMatrix2x3fv;
+                                                break;
+                                        case 0x0304:
+                                                set_many_matnm = glUniformMatrix3x4fv;
+                                                break;
+                                        case 0x0204:
+                                                set_many_matnm = glUniformMatrix2x4fv;
+                                                break;
+
                                         }
-                                } else if (floatInput.last_row == 2) {
-                                        switch (width) {
-                                        case 3:
-                                                glUniformMatrix3fv(uniformId,
-                                                                   1,
-                                                                   GL_TRUE,
-                                                                   &values.front());
-                                                break;
-                                        case 4:
-                                                glUniformMatrix4x3fv(uniformId,
-                                                                     1,
-                                                                     GL_TRUE,
-                                                                     &values.front());
-                                                break;
-                                        case 2:
-                                                glUniformMatrix2x3fv(uniformId,
-                                                                     1,
-                                                                     GL_TRUE,
-                                                                     &values.front());
-                                                break;
-                                        default:
-                                                printf("invalid number of float inputs: %lu, rows: %u\n", width, last_row);
+
+                                        if (!set_many_matnm) {
+                                                printf("invalid number of float inputs: %lu, rows: %u\n", width, 1+last_row);
                                         }
-                                } else if (floatInput.last_row == 3) {
-                                        switch (width) {
-                                        case 4:
-                                                glUniformMatrix4fv(uniformId,
-                                                                   1,
-                                                                   GL_TRUE,
-                                                                   &values.front());
-                                                break;
-                                        case 3:
-                                                glUniformMatrix3x4fv(uniformId,
-                                                                     1,
-                                                                     GL_TRUE,
-                                                                     &values.front());
-                                                break;
-                                        case 2:
-                                                glUniformMatrix2x4fv(uniformId,
-                                                                     1,
-                                                                     GL_TRUE,
-                                                                     &values.front());
-                                                break;
-                                        default:
-                                                printf("invalid number of float inputs: %lu, rows: %u\n", width, last_row);
-                                        }
+
+                                        set_many_matnm(uniformId, 1, GL_TRUE, &values.front());
                                 }
                                 OGL_TRACE;
                         }
