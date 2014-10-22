@@ -185,6 +185,14 @@ extern void render_textured_quad_v2(uint64_t time_micros)
                         },
                         {
                                 "translation", { (float)(0.15 * sin(time_micros / 100000.0)), 0.0, 0.0, 0.0 }, 0
+                        },
+                        {
+                                "transform", {
+                                        1.0, 0.0, 0.0, 0.0,
+                                        0.0, (float) (1.0 + 0.35*sin(time_micros/70000.0)), 0.0, 0.0,
+                                        0.0, 0.0, 1.0, 0.0,
+                                        0.0, 0.0, 0.0, 1.0
+                                }, 3
                         }
                 }
         }
