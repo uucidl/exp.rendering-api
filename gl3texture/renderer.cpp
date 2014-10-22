@@ -105,31 +105,102 @@ void drawOne(FrameSeries& output,
                                 i++;
 
                                 auto const& values = floatInput.values;
-                                switch (values.size()) {
-                                case 4:
-                                        glUniform4f(uniformId,
-                                                    values[0],
-                                                    values[1],
-                                                    values[2],
-                                                    values[3]);
-                                        break;
-                                case 3:
-                                        glUniform3f(uniformId,
-                                                    values[0],
-                                                    values[1],
-                                                    values[2]);
-                                        break;
-                                case 2:
-                                        glUniform2f(uniformId,
-                                                    values[0],
-                                                    values[1]);
-                                        break;
-                                case 1:
-                                        glUniform1f(uniformId,
-                                                    values[0]);
-                                        break;
-                                default:
-                                        printf("invalid number of float inputs: %lu\n", values.size());
+                                auto const width  = values.size();
+                                auto const last_row = floatInput.last_row;
+                                if (last_row == 0) {
+                                        switch (width) {
+                                        case 4:
+                                                glUniform4fv(uniformId,
+                                                             1,
+                                                             &values.front());
+                                                break;
+                                        case 3:
+                                                glUniform3fv(uniformId,
+                                                             1,
+                                                             &values.front());
+                                                break;
+                                        case 2:
+                                                glUniform2fv(uniformId,
+                                                             1,
+                                                             &values.front());
+                                                break;
+                                        case 1:
+                                                glUniform1fv(uniformId,
+                                                             1,
+                                                             &values.front());
+                                                break;
+                                        default:
+                                                printf("invalid number of float inputs: %lu\n", width);
+                                        }
+                                } else if (last_row == 1) {
+                                        switch (width) {
+                                        case 2:
+                                                glUniformMatrix2fv(uniformId,
+                                                                   1,
+                                                                   GL_TRUE,
+                                                                   &values.front());
+                                                break;
+                                        case 4:
+                                                glUniformMatrix4x2fv(uniformId,
+                                                                     1,
+                                                                     GL_TRUE,
+                                                                     &values.front());
+                                                break;
+                                        case 3:
+                                                glUniformMatrix3x2fv(uniformId,
+                                                                     1,
+                                                                     GL_TRUE,
+                                                                     &values.front());
+                                                break;
+                                        default:
+                                                printf("invalid number of float inputs: %lu, rows: %u\n", width, last_row);
+                                        }
+                                } else if (floatInput.last_row == 2) {
+                                        switch (width) {
+                                        case 3:
+                                                glUniformMatrix3fv(uniformId,
+                                                                   1,
+                                                                   GL_TRUE,
+                                                                   &values.front());
+                                                break;
+                                        case 4:
+                                                glUniformMatrix4x3fv(uniformId,
+                                                                     1,
+                                                                     GL_TRUE,
+                                                                     &values.front());
+                                                break;
+                                        case 2:
+                                                glUniformMatrix2x3fv(uniformId,
+                                                                     1,
+                                                                     GL_TRUE,
+                                                                     &values.front());
+                                                break;
+                                        default:
+                                                printf("invalid number of float inputs: %lu, rows: %u\n", width, last_row);
+                                        }
+                                } else if (floatInput.last_row == 3) {
+                                        switch (width) {
+                                        case 4:
+                                                glUniformMatrix4fv(uniformId,
+                                                                   1,
+                                                                   GL_TRUE,
+                                                                   &values.front());
+                                                break;
+                                        case 3:
+                                                glUniformMatrix3x4fv(uniformId,
+                                                                     1,
+                                                                     GL_TRUE,
+                                                                     &values.front());
+                                                break;
+                                        case 2:
+                                                glUniformMatrix2x4fv(uniformId,
+                                                                     1,
+                                                                     GL_TRUE,
+                                                                     &values.front());
+                                                break;
+                                        default:
+                                                printf("invalid number of float inputs: %lu, rows: %u\n", width, last_row);
+                                        }
                                 }
                                 OGL_TRACE;
                         }
