@@ -20,7 +20,7 @@ struct ProgramBindings {
         };
         std::vector<ArrayAttrib> arrayAttribs;
 
-        std::vector<GLint> floatValuesUniforms;
+        std::vector<GLint> floatVectorsUniforms;
 };
 }
 
@@ -50,7 +50,7 @@ ProgramBindings programBindings(FrameSeries::ShaderProgramMaterials const&
 
         std::transform(std::begin(inputs.floatValues),
                        std::end(inputs.floatValues),
-                       std::back_inserter(bindings.floatValuesUniforms),
+                       std::back_inserter(bindings.floatVectorsUniforms),
         [&program](ProgramInputs::FloatInput const& element) {
                 return glGetUniformLocation(program.programId, element.name.c_str());
         });
@@ -101,7 +101,7 @@ void drawOne(FrameSeries& output,
                 {
                         auto i = 0;
                         for (auto& floatInput : inputs.floatValues) {
-                                auto uniformId = vars.floatValuesUniforms[i];
+                                auto uniformId = vars.floatVectorsUniforms[i];
                                 i++;
 
                                 auto const& values = floatInput.values;
