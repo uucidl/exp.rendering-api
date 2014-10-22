@@ -181,10 +181,10 @@ extern void render_textured_quad_v2(uint64_t time_micros)
                 },
                 {
                         {
-                                "g_color", { 0.2, 0.4, (float)(0.1 + 0.3 * sin(time_micros / 1000000.0)), 0.0 },
+                                "g_color", { 0.2, 0.4, (float)(0.1 + 0.3 * sin(time_micros / 1000000.0)), 0.0 }, 0,
                         },
                         {
-                                "translation", { (float)(0.15 * sin(time_micros / 100000.0)), 0.0, 0.0, 0.0 }
+                                "translation", { (float)(0.15 * sin(time_micros / 100000.0)), 0.0, 0.0, 0.0 }, 0
                         }
                 }
         }

@@ -45,7 +45,8 @@ struct ProgramInputs {
         struct FloatInput {
                 std::string name;
                 std::vector<float> values;
-                int rows;
+                /// index of the last row
+                int last_row;
         };
 
         std::vector<AttribArrayInput> attribs;

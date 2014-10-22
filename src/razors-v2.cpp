@@ -149,7 +149,7 @@ void draw(RazorsV2& self, double ms)
                         {
                                 ProgramInputs::FloatInput { .name = "iResolution", .values = { static_cast<float> (viewport.width), static_cast<float> (viewport.height) } },
                                 ProgramInputs::FloatInput { .name = "g_color", .values = transparentWhite(0.9998f)},
-                                ProgramInputs::FloatInput { .name = "transform", .values = scaleTransform(0.990f + 0.010f * sin(TAU * ms / 5000.0)), .rows = 4 }
+                                ProgramInputs::FloatInput { .name = "transform", .values = scaleTransform(0.990f + 0.010f * sin(TAU * ms / 5000.0)), .last_row = 3 }
                         }
                 },
                 .geometry = projectorQuad()
