@@ -78,13 +78,13 @@ void drawOne(FrameSeries& output,
         {
                 auto vars = programBindings(program, inputs);
 
-                auto bindTextureTargets = [&inputs,&vars,&output]() {
+                auto bindTextureUnits = [&inputs,&vars,&output]() {
                         // and return the active texture targets
-                        auto textureTargets = std::vector<GLenum> {};
+                        auto textureUnits = std::vector<std::pair<GLenum,GLenum>> {};
 
                         auto i = 0;
                         for (auto& textureInput : inputs.textures) {
-                                auto unit = i;
+                                auto unitIndex = i;
                                 auto uniformId = vars.textureUniforms[i];
                                 i++;
 
@@ -92,23 +92,23 @@ void drawOne(FrameSeries& output,
                                         continue;
                                 }
                                 auto const& texture = output.texture(textureInput.content);
-                                auto target = GL_TEXTURE0 + unit;
-                                textureTargets.emplace_back(target);
-                                glActiveTexture(target);
-                                glBindTexture(GL_TEXTURE_2D, texture.textureId);
-                                glUniform1i(uniformId, unit);
+                                auto unit = GL_TEXTURE0 + unitIndex;
+                                textureUnits.emplace_back(unit, texture.target);
+                                glActiveTexture(unit);
+                                glBindTexture(texture.target, texture.textureId);
+                                glUniform1i(uniformId, unitIndex);
                                 OGL_TRACE;
                         }
 
-                        return textureTargets;
+                        return textureUnits;
                 };
 
-                auto unbindTextureTargets = [](std::vector<GLenum> const&
-                activeTextureTargets) {
+                auto unbindTextureUnits = [](std::vector<std::pair<GLenum,GLenum>> const&
+                activeTextureUnits) {
                         // unbind
-                        for (auto target : activeTextureTargets) {
-                                glActiveTexture(target);
-                                glBindTexture(GL_TEXTURE_2D, 0);
+                        for (auto pair : activeTextureUnits) {
+                                glActiveTexture(pair.first);
+                                glBindTexture(pair.second, 0);
                         }
                         glActiveTexture(GL_TEXTURE0);
                 };
@@ -199,7 +199,7 @@ void drawOne(FrameSeries& output,
                         }
                 };
 
-                auto activeTextureTargets = bindTextureTargets();
+                auto activeTextureUnits = bindTextureUnits();
                 bindFloatUniforms();
 
                 auto const& mesh = output.mesh(geometryDef);
@@ -232,7 +232,7 @@ void drawOne(FrameSeries& output,
                 }
                 glBindVertexArray(0);
 
-                unbindTextureTargets(activeTextureTargets);
+                unbindTextureUnits(activeTextureUnits);
                 OGL_TRACE;
         }
         glUseProgram(0);

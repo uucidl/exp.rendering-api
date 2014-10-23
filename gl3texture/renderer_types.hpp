@@ -87,6 +87,7 @@ public:
 
         struct TextureMaterials {
                 GLuint textureId;
+                GLenum target;
         };
 
         TextureMaterials texture(TextureDef textureDef)
@@ -101,9 +102,10 @@ public:
                 },
                 [=](TextureDef const& def, size_t index) {
                         textures.resize(index + 1);
-
                         auto& texture = textures[index];
-                        withTexture(texture,
+                        texture.target = GL_TEXTURE_2D;
+
+                        withTexture(texture.resource,
                         [&def]() {
                                 defineNonMipmappedARGB32Texture(def.width,
                                                                 def.height,
@@ -118,7 +120,9 @@ public:
                         std::swap(textures[indexA], textures[indexB]);
                 });
 
-                return { textures[index].id };
+                auto const& texture = textures[index];
+
+                return { texture.resource.id, texture.target };
         }
 
         struct ShaderProgramMaterials {
@@ -240,7 +244,12 @@ private:
         RecyclingHeap<GeometryDef> meshHeap = { 0, 0, meshDefs };
         long meshCreations = 0;
 
-        std::vector<TextureResource> textures;
+        struct Texture {
+                TextureResource resource;
+                GLenum target;
+        };
+
+        std::vector<Texture> textures;
         std::vector<TextureDef> textureDefs;
         RecyclingHeap<TextureDef> textureHeap = { 0, 0, textureDefs };
         long textureCreations = 0;
