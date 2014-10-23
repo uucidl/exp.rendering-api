@@ -277,7 +277,7 @@ static void seed(float maxAlpha=0.06f)
                         texture.target = GL_TEXTURE_3D;
                         withTexture(texture,
                         [=]() {
-                                defineNonMipmappedARG32Texture3d
+                                defineNonMipmappedARGB32Texture3d
                                 (txWidth, txHeight, textureN,
                                 [](uint32_t* pixels, int width, int height, int depth) {
                                         auto plane = 0.0f;

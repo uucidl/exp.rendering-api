@@ -50,11 +50,11 @@ void defineNonMipmappedARGB32Texture(
  *
  * pixels are layed out in layers from 0 to depth
  */
-void defineNonMipmappedARG32Texture3d(int const width,
-                                      int const height,
-                                      int const depth,
-                                      std::function<void(uint32_t* pixels, int width, int height, int depth)>
-                                      pixelFiller)
+void defineNonMipmappedARGB32Texture3d(int const width,
+                                       int const height,
+                                       int const depth,
+                                       std::function<void(uint32_t* pixels, int width, int height, int depth)>
+                                       pixelFiller)
 {
         auto const target = GL_TEXTURE_3D;
 
