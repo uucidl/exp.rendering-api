@@ -191,4 +191,12 @@ void draw(RazorsV2& self, double ms)
                 .fragmentShader = fragmentShader(seedFS),
         },
         { seed });
+
+        static auto output = makeFrameSeries();
+
+        drawMany(*output, ProgramDef {
+                .vertexShader = vertexShader(seedVS),
+                .fragmentShader = fragmentShader(seedFS),
+        },
+        { seed });
 }
