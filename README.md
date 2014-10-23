@@ -6,7 +6,12 @@ We experiment with various code styles for rendering visuals using OpenGL.
 Testing
 =======
 
-launch 
+clone this repository, then call
+```
+$ ./post-clone.sh
+```
+
+After this launch the various examples using:
 
 ```
 $ ./ref.sh
