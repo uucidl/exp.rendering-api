@@ -24,12 +24,14 @@ struct ProgramDef {
         FragmentShaderDef fragmentShader;
 };
 
-using TextureDefFn = void (*)(uint32_t*,int,int, void const* data);
+using TextureDefFn = void (*)(uint32_t*, int width, int height, int depth,
+                              void const* data);
 
 struct TextureDef {
         std::vector<char> data;
         int width = 0;
         int height = 0;
+        int depth = 0;
         TextureDefFn pixelFiller = nullptr;
 };
 

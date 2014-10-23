@@ -39,7 +39,7 @@ size_t quadDefiner(BufferResource const& elementBuffer,
         return indicesCount;
 }
 
-static void perlinTexture(uint32_t* pixels, int width, int height,
+static void perlinTexture(uint32_t* pixels, int width, int height, int depth,
                           void const* data)
 {
         perlinNoisePixelFiller(pixels, width, height);

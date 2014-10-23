@@ -92,6 +92,9 @@ void drawOne(FrameSeries& output,
                                         continue;
                                 }
                                 auto const& texture = output.texture(textureInput.content);
+                                if (texture.target == 0) {
+                                        continue;
+                                }
                                 auto unit = GL_TEXTURE0 + unitIndex;
                                 textureUnits.emplace_back(unit, texture.target);
                                 glActiveTexture(unit);

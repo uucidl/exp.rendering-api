@@ -103,15 +103,37 @@ public:
                 [=](TextureDef const& def, size_t index) {
                         textures.resize(index + 1);
                         auto& texture = textures[index];
-                        texture.target = GL_TEXTURE_2D;
+
+                        if (def.width > 0 && def.height > 0 && def.depth > 0) {
+                                texture.target = GL_TEXTURE_3D;
+                        } else if (def.width > 0 && def.height > 0) {
+                                texture.target = GL_TEXTURE_2D;
+                        } else if (def.width > 0) {
+                                texture.target = GL_TEXTURE_1D;
+                        } else {
+                                texture.target = 0;
+                        }
 
                         withTexture(texture.resource,
-                        [&def]() {
-                                defineNonMipmappedARGB32Texture(def.width,
-                                                                def.height,
-                                [&def](uint32_t* data, int width, int height) {
-                                        def.pixelFiller(data, width, height, &def.data.front());
-                                });
+                        [&def,&texture]() {
+                                switch(texture.target) {
+                                case GL_TEXTURE_2D:
+                                        defineNonMipmappedARGB32Texture(def.width,
+                                                                        def.height,
+                                        [&def](uint32_t* data, int width, int height) {
+                                                def.pixelFiller(data, width, height, 0, &def.data.front());
+                                        });
+                                        break;
+                                case GL_TEXTURE_3D:
+                                        defineNonMipmappedARGB32Texture3d(def.width,
+                                                                          def.height,
+                                                                          def.depth,
+                                        [&def](uint32_t* data, int width, int height, int depth) {
+                                                def.pixelFiller(data, width, height, depth, &def.data.front());
+                                        });
+                                        break;
+                                };
+
                         });
                         OGL_TRACE;
                         textureCreations++;
