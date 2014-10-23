@@ -64,6 +64,11 @@ struct GeometryDef {
                           void const* data) = nullptr;
 };
 
+struct RenderObjectDef {
+        ProgramInputs inputs;
+        GeometryDef geometry;
+};
+
 using FrameSeriesResource =
         std::unique_ptr<FrameSeries, std::function<void(FrameSeries*)>>;
 FrameSeriesResource makeFrameSeries();
@@ -72,3 +77,7 @@ void drawOne(FrameSeries& output,
              ProgramDef programDef,
              ProgramInputs inputs,
              GeometryDef geometryDef);
+
+void drawMany(FrameSeries& output,
+              ProgramDef program,
+              std::vector<RenderObjectDef> objects);

@@ -25,11 +25,6 @@ struct FramebufferDef {
         int height;
 };
 
-struct RenderObjectDef {
-        ProgramInputs inputs;
-        GeometryDef geometry;
-};
-
 struct Rect {
         float x;
         float y;

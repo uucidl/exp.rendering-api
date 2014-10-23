@@ -238,3 +238,11 @@ void drawOne(FrameSeries& output,
         glUseProgram(0);
 };
 
+void drawMany(FrameSeries& output,
+              ProgramDef program,
+              std::vector<RenderObjectDef> objects)
+{
+        for (auto const& object : objects) {
+                drawOne(output, program, object.inputs, object.geometry);
+        }
+}
