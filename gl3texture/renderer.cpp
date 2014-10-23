@@ -77,8 +77,11 @@ void drawOne(FrameSeries& output,
         glUseProgram(program.programId);
         {
                 auto vars = programBindings(program, inputs);
-                auto textureTargets = std::vector<GLenum> {};
-                {
+
+                auto bindTextureTargets = [&inputs,&vars,&output]() {
+                        // and return the active texture targets
+                        auto textureTargets = std::vector<GLenum> {};
+
                         auto i = 0;
                         for (auto& textureInput : inputs.textures) {
                                 auto unit = i;
@@ -96,9 +99,21 @@ void drawOne(FrameSeries& output,
                                 glUniform1i(uniformId, unit);
                                 OGL_TRACE;
                         }
-                }
 
-                {
+                        return textureTargets;
+                };
+
+                auto unbindTextureTargets = [](std::vector<GLenum> const&
+                activeTextureTargets) {
+                        // unbind
+                        for (auto target : activeTextureTargets) {
+                                glActiveTexture(target);
+                                glBindTexture(GL_TEXTURE_2D, 0);
+                        }
+                        glActiveTexture(GL_TEXTURE0);
+                };
+
+                auto bindFloatUniforms = [&inputs,&vars]() {
                         auto i = 0;
                         for (auto& floatInput : inputs.floatValues) {
                                 auto uniformId = vars.floatVectorsUniforms[i];
@@ -182,7 +197,10 @@ void drawOne(FrameSeries& output,
                                 }
                                 OGL_TRACE;
                         }
-                }
+                };
+
+                auto activeTextureTargets = bindTextureTargets();
+                bindFloatUniforms();
 
                 auto const& mesh = output.mesh(geometryDef);
 
@@ -214,13 +232,9 @@ void drawOne(FrameSeries& output,
                 }
                 glBindVertexArray(0);
 
-                // unbind
-                for (auto target : textureTargets) {
-                        glActiveTexture(target);
-                        glBindTexture(GL_TEXTURE_2D, 0);
-                }
-                glActiveTexture(GL_TEXTURE0);
+                unbindTextureTargets(activeTextureTargets);
                 OGL_TRACE;
         }
         glUseProgram(0);
 };
+
