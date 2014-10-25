@@ -157,6 +157,15 @@ void draw(RazorsV2& self, double ms)
                 .geometry = projectorQuad()
         };
 
+        auto identityMatrix = []() -> std::vector<float> {
+                return {
+                        1.0f, 0.0f, 0.0f, 0.0f,
+                        0.0f, 1.0f, 0.0f, 0.0f,
+                        0.0f, 0.0f, 1.0f, 0.0f,
+                        0.0f, 0.0f, 0.0f, 1.0f
+                };
+        };
+
         auto seed = RenderObjectDef {
                 .inputs = ProgramInputs {
                         {
@@ -165,7 +174,11 @@ void draw(RazorsV2& self, double ms)
                         {
                                 { .name = "tex", seedTexture() },
                         },
-                        {},
+                        {
+                                { .name = "depth", .values = { (float)(0.5 * (1.0 + sin(TAU * ms / 3000.0))) } } ,
+                                { .name = "transform", .values = identityMatrix(), .last_row = 3 },
+                                { .name = "g_color", .values = { 1.0f, 1.0f, 1.0f, 1.0f } },
+                        },
                 },
                 .geometry = projectorQuad(),
         };
