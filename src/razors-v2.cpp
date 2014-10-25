@@ -66,7 +66,7 @@ void draw(RazorsV2& self, double ms)
                 int height;
         };
 
-        auto viewport = Viewport { 100, 100 };
+        auto viewport = Viewport { 256, 256 };
 
         auto frame1 = FramebufferDef {
                 .id = "frame1",
@@ -122,18 +122,8 @@ void draw(RazorsV2& self, double ms)
                 return geometry;
         };
 
-        auto projectorQuad = [quad]() -> GeometryDef {
+        auto fullscreenQuad = [quad]() -> GeometryDef {
                 return quad(Rect { -1.f, -1.f, 2.0f, 2.0f }, Rect {0.f, 0.f, 1.f, 1.f });
-        };
-
-        auto seedTexture = [viewport]() -> TextureDef {
-                return {
-                        {},
-                        viewport.width,
-                        viewport.height,
-                        12,
-                        (TextureDefFn) seed_texture,
-                };
         };
 
         auto projector = RenderObjectDef {
@@ -154,7 +144,7 @@ void draw(RazorsV2& self, double ms)
                                 ProgramInputs::FloatInput { .name = "transform", .values = scaleTransform(0.990f + 0.010f * sin(TAU * ms / 5000.0)), .last_row = 3 }
                         }
                 },
-                .geometry = projectorQuad()
+                .geometry = fullscreenQuad()
         };
 
         auto identityMatrix = []() -> std::vector<float> {
@@ -163,6 +153,16 @@ void draw(RazorsV2& self, double ms)
                         0.0f, 1.0f, 0.0f, 0.0f,
                         0.0f, 0.0f, 1.0f, 0.0f,
                         0.0f, 0.0f, 0.0f, 1.0f
+                };
+        };
+
+        auto seedTexture = [viewport]() -> TextureDef {
+                return {
+                        {},
+                        viewport.width,
+                        viewport.height,
+                        12,
+                        (TextureDefFn) seed_texture,
                 };
         };
 
@@ -180,7 +180,7 @@ void draw(RazorsV2& self, double ms)
                                 { .name = "g_color", .values = { 1.0f, 1.0f, 1.0f, 1.0f } },
                         },
                 },
-                .geometry = projectorQuad(),
+                .geometry = fullscreenQuad(),
         };
 
 
