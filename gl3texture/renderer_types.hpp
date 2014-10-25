@@ -114,27 +114,27 @@ public:
                                 texture.target = 0;
                         }
 
-                        withTexture(texture.resource,
-                        [&def,&texture]() {
-                                switch(texture.target) {
-                                case GL_TEXTURE_2D:
-                                        defineNonMipmappedARGB32Texture(def.width,
-                                                                        def.height,
-                                        [&def](uint32_t* data, int width, int height) {
-                                                def.pixelFiller(data, width, height, 0, &def.data.front());
-                                        });
-                                        break;
-                                case GL_TEXTURE_3D:
-                                        defineNonMipmappedARGB32Texture3d(def.width,
-                                                                          def.height,
-                                                                          def.depth,
-                                        [&def](uint32_t* data, int width, int height, int depth) {
-                                                def.pixelFiller(data, width, height, depth, &def.data.front());
-                                        });
-                                        break;
-                                };
-
-                        });
+                        OGL_TRACE;
+                        switch(texture.target) {
+                        case GL_TEXTURE_2D:
+                                glBindTexture(texture.target, texture.resource.id);
+                                defineNonMipmappedARGB32Texture(def.width,
+                                                                def.height,
+                                                                [&def](uint32_t* data, int width, int height) {
+                                                                        def.pixelFiller(data, width, height, 0, &def.data.front());
+                                                                });
+                                break;
+                        case GL_TEXTURE_3D:
+                                glBindTexture(texture.target, texture.resource.id);
+                                defineNonMipmappedARGB32Texture3d(def.width,
+                                                                  def.height,
+                                                                  def.depth,
+                                                                  [&def](uint32_t* data, int width, int height, int depth) {
+                                                                          def.pixelFiller(data, width, height, depth, &def.data.front());
+                                                                  });
+                                break;
+                        };
+                        glBindTexture(texture.target, 0);
                         OGL_TRACE;
                         textureCreations++;
                 },

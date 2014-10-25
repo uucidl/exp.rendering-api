@@ -100,7 +100,6 @@ void drawOne(FrameSeries& output,
                                 glActiveTexture(unit);
                                 glBindTexture(texture.target, texture.textureId);
                                 glUniform1i(uniformId, unitIndex);
-                                OGL_TRACE;
                         }
 
                         return textureUnits;

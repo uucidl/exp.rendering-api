@@ -1,5 +1,6 @@
 #include "estd.hpp"
 #include "inlineshaders.hpp"
+#include "razors-common.hpp"
 #include "razorsV2.hpp"
 
 #include "../gl3companion/glresource_types.hpp"
@@ -125,8 +126,14 @@ void draw(RazorsV2& self, double ms)
                 return quad(Rect { -1.f, -1.f, 2.0f, 2.0f }, Rect {0.f, 0.f, 1.f, 1.f });
         };
 
-        auto seedTexture = []() -> TextureDef {
-                return TextureDef {};
+        auto seedTexture = [viewport]() -> TextureDef {
+                return {
+                        {},
+                        viewport.width,
+                        viewport.height,
+                        12,
+                        (TextureDefFn) seed_texture,
+                };
         };
 
         auto projector = RenderObjectDef {
