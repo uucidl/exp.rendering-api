@@ -83,3 +83,8 @@ void drawOne(FrameSeries& output,
 void drawMany(FrameSeries& output,
               ProgramDef program,
               std::vector<RenderObjectDef> objects);
+
+TextureDef drawManyIntoTexture(FrameSeries& output,
+                               TextureDef spec,
+                               ProgramDef program,
+                               std::vector<RenderObjectDef> objects);

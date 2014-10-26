@@ -59,10 +59,11 @@ ProgramBindings programBindings(FrameSeries::ShaderProgramMaterials const&
         return bindings;
 };
 
-void drawOne(FrameSeries& output,
-             ProgramDef programDef,
-             ProgramInputs inputs,
-             GeometryDef geometryDef)
+static
+void innerDrawOne(FrameSeries& output,
+                  ProgramDef programDef,
+                  ProgramInputs inputs,
+                  GeometryDef geometryDef)
 {
         output.beginFrame();
 
@@ -102,6 +103,8 @@ void drawOne(FrameSeries& output,
                                 glBindTexture(texture.target, texture.textureId);
                                 glUniform1i(uniformId, unitIndex);
                         }
+
+                        OGL_TRACE;
 
                         return textureUnits;
                 };
@@ -241,11 +244,44 @@ void drawOne(FrameSeries& output,
         glUseProgram(0);
 };
 
+static
+void innerDrawMany(FrameSeries& output, ProgramDef program,
+                   std::vector<RenderObjectDef> objects)
+{
+        for (auto const& object : objects) {
+                innerDrawOne(output, program, object.inputs, object.geometry);
+        }
+
+}
+
 void drawMany(FrameSeries& output,
               ProgramDef program,
               std::vector<RenderObjectDef> objects)
 {
-        for (auto const& object : objects) {
-                drawOne(output, program, object.inputs, object.geometry);
-        }
+        output.beginFrame();
+        innerDrawMany(output, program, objects);
+}
+
+TextureDef drawManyIntoTexture(FrameSeries& output,
+                               TextureDef spec,
+                               ProgramDef program,
+                               std::vector<RenderObjectDef> objects)
+{
+        output.beginFrame();
+
+        auto fb = output.framebuffer(spec);
+        glBindFramebuffer(GL_FRAMEBUFFER, fb.framebufferId);
+        innerDrawMany(output, program, objects);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        return fb.textureDef;
+}
+
+void drawOne(FrameSeries& output,
+             ProgramDef programDef,
+             ProgramInputs inputs,
+             GeometryDef geometryDef)
+{
+        output.beginFrame();
+        innerDrawOne(output, programDef, inputs, geometryDef);
 }

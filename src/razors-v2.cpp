@@ -58,6 +58,16 @@ size_t quadDefiner(BufferResource const& elementBuffer,
         return indicesCount;
 }
 
+static void debug_texture(uint32_t* pixels, int width, int height, int depth,
+                          void const* data)
+{
+        for (int j = 0; j < height; j++) {
+                for (int i = 0; i < width; i++) {
+                        pixels[i + j * width] = 0xFF408080;
+                }
+        }
+}
+
 
 void draw(RazorsV2& self, double ms)
 {
@@ -68,33 +78,17 @@ void draw(RazorsV2& self, double ms)
 
         auto viewport = Viewport { 256, 256 };
 
-        auto frame1 = FramebufferDef {
-                .id = "frame1",
-                .width = viewport.width,
-                .height = viewport.height,
-        };
-
-        auto frame2 = FramebufferDef {
-                .id = "frame2",
-                .width = viewport.width,
-                .height = viewport.height,
-        };
-
-        auto framebufferTexture = [](FramebufferDef& framebuffer) {
-                auto texture = TextureDef {};
-
-                texture.data.reserve(sizeof framebuffer);
-                *(new (&texture.data.front()) FramebufferDef) = framebuffer;
-                texture.width = framebuffer.width;
-                texture.height = framebuffer.height;
-                texture.pixelFiller = NULL;
-
-                return texture;
-        };
-
         auto transparentWhite = [](float alpha) -> std::vector<float> {
                 return { alpha*1.0f, alpha*1.0f, alpha*1.0f, alpha };
         };
+
+#if 0
+        auto grey = [](float value) -> std::vector<float> {
+                // of course this is not real grey, need to go through
+                // the standard gamma + color correction instead
+                return { value, value, value, 1.0f };
+        };
+#endif
 
         auto scaleTransform = [](float scale) -> std::vector<float> {
                 return std::vector<float> {
@@ -126,27 +120,6 @@ void draw(RazorsV2& self, double ms)
                 return quad(Rect { -1.f, -1.f, 2.0f, 2.0f }, Rect {0.f, 0.f, 1.f, 1.f });
         };
 
-        auto projector = RenderObjectDef {
-                .inputs = ProgramInputs {
-                        {
-                                { "position", 2 },
-                                { "texcoord", 2 },
-                        },
-                        {
-                                {
-                                        .name = "tex",
-                                        .content = framebufferTexture(frame2),
-                                }
-                        },
-                        {
-                                ProgramInputs::FloatInput { .name = "iResolution", .values = { static_cast<float> (viewport.width), static_cast<float> (viewport.height) } },
-                                ProgramInputs::FloatInput { .name = "g_color", .values = transparentWhite(0.9998f)},
-                                ProgramInputs::FloatInput { .name = "transform", .values = scaleTransform(0.990f + 0.010f * sin(TAU * ms / 5000.0)), .last_row = 3 }
-                        }
-                },
-                .geometry = fullscreenQuad()
-        };
-
         auto identityMatrix = []() -> std::vector<float> {
                 return {
                         1.0f, 0.0f, 0.0f, 0.0f,
@@ -156,14 +129,43 @@ void draw(RazorsV2& self, double ms)
                 };
         };
 
-        auto seedTexture = [viewport]() -> TextureDef {
-                return {
-                        {},
-                        viewport.width,
-                        viewport.height,
-                        12,
-                        (TextureDefFn) seed_texture,
+
+        auto projector = [=](TextureDef const& texture) -> RenderObjectDef {
+                return RenderObjectDef {
+                        .inputs = ProgramInputs {
+                                {
+                                        { "position", 2 },
+                                        { "texcoord", 2 },
+                                },
+                                {
+                                        {
+                                                "tex", texture
+                                        }
+                                },
+                                {
+                                        //ProgramInputs::FloatInput { .name = "iResolution", .values = { static_cast<float> (viewport.width), static_cast<float> (viewport.height) } },
+                                        ProgramInputs::FloatInput { .name = "g_color", .values = transparentWhite(0.9998f)},
+                                        ProgramInputs::FloatInput { .name = "transform", .values = scaleTransform(0.990f + 0.010f * sin(TAU * ms / 5000.0)), .last_row = 3 },
+                                }
+                        },
+                        .geometry = fullscreenQuad()
                 };
+        };
+
+        auto seedTexture = TextureDef {
+                {},
+                viewport.width,
+                viewport.height,
+                12,
+                (TextureDefFn) seed_texture,
+        };
+
+        auto debugTexture = TextureDef {
+                {},
+                200,
+                200,
+                0,
+                debug_texture,
         };
 
         auto seed = RenderObjectDef {
@@ -172,7 +174,7 @@ void draw(RazorsV2& self, double ms)
                                 { "position", 2 }, { "texcoord", 2 }
                         },
                         {
-                                { .name = "tex", seedTexture() },
+                                { .name = "tex", seedTexture },
                         },
                         {
                                 { .name = "depth", .values = { (float)(0.5 * (1.0 + sin(TAU * ms / 3000.0))) } } ,
@@ -192,31 +194,24 @@ void draw(RazorsV2& self, double ms)
                 return FragmentShaderDef { .source = content };
         };
 
-        auto appendTo = [](FramebufferDef const& framebuffer,
-        ProgramDef const& program, RenderObjectDef const& object) {
-                // do nothing
+        static auto output = makeFrameSeries();
+        static auto framebuffer1 = TextureDef {
+                .width = 100,
+                .height = 100,
         };
 
-        appendTo(frame1,
-        ProgramDef {
-                .vertexShader = vertexShader(defaultVS),
-                .fragmentShader = fragmentShader(projectorFS),
-        }, {
-                projector,
-        }
-                );
-        appendTo(frame1,
+        framebuffer1 = drawManyIntoTexture
+                       (*output,
+                        framebuffer1,
         ProgramDef {
                 .vertexShader = vertexShader(seedVS),
                 .fragmentShader = fragmentShader(seedFS),
         },
         { seed });
-
-        static auto output = makeFrameSeries();
 
         drawMany(*output, ProgramDef {
-                .vertexShader = vertexShader(seedVS),
-                .fragmentShader = fragmentShader(seedFS),
+                .vertexShader = vertexShader(defaultVS),
+                .fragmentShader = fragmentShader(defaultFS),
         },
-        { seed });
+        { projector(framebuffer1) });
 }

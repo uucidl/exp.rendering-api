@@ -48,7 +48,7 @@ static void perlin_noise(uint32_t* data, int width, int height,
 
 void seed_texture(uint32_t* pixels, int width, int height, int depth)
 {
-        auto plane = 0.0f;
+        auto plane = 0.3f;
         for (int d = 0; d < depth; d++) {
                 perlin_noise(pixels + d*width*height, width, height, plane);
                 plane += 0.2f;
