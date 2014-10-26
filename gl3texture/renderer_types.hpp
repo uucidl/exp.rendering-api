@@ -3,11 +3,34 @@
 #include "renderer.hpp"
 
 #include "../gl3companion/gldebug.hpp"
+#include "../gl3companion/glframebuffers.hpp"
 #include "../gl3companion/glresource_types.hpp"
 #include "../gl3companion/glshaders.hpp"
 #include "../gl3companion/gltexturing.hpp"
 
 #include <vector>
+
+using FramebufferDef = TextureDef;
+
+namespace
+{
+bool isEqual(TextureDef const& a, TextureDef const& b)
+{
+        return a.data == b.data
+               && a.width == b.width
+               && a.height == b.height
+               && a.depth == b.depth
+               && a.pixelFiller == b.pixelFiller;
+}
+
+void framebufferPixelFiller(uint32_t* pixels, int width, int height,
+                            int depth, void const* data)
+{
+        printf("data: %p\n", data);
+        // this function is just an identifier
+        printf("ERROR: I should not be called, framebuffer: %d\n", *((GLint*)data));
+}
+}
 
 // persistent datastructure... the core of the infrastructure
 class FrameSeries
@@ -22,6 +45,10 @@ public:
                        "meshes: %ld\n",
                        meshCreations,
                        meshes.size());
+                printf("framebuffer creations: %ld\n"
+                       "framebuffers: %ld\n",
+                       framebufferCreations,
+                       framebuffers.size());
         }
 
         void beginFrame()
@@ -31,6 +58,61 @@ public:
                 reset(meshHeap);
                 reset(textureHeap);
                 reset(programHeap);
+
+        struct FramebufferMaterials {
+                GLuint framebufferId;
+                TextureDef textureDef;
+        };
+
+        FramebufferMaterials framebuffer(FramebufferDef framebufferDef)
+        {
+                auto fbIndex = findOrCreate<FramebufferDef>
+                               (framebufferHeap,
+                                framebufferDef,
+                [&framebufferDef](FramebufferDef const& element) {
+                        return isEqual(element, framebufferDef);
+                },
+                [=](FramebufferDef const& def, size_t framebufferIndex) {
+                        framebuffers.resize(1 + framebufferIndex);
+
+                        auto& framebuffer = framebuffers[framebufferIndex];
+
+                        auto txIndex = findOrCreate<TextureDef>
+                                       (textureHeap,
+                                        framebufferDef,
+                        [&framebufferDef](TextureDef const& element) {
+                                return isEqual(element, framebufferDef);
+                        },
+                        [=](TextureDef const& def, size_t index) {
+                                textures.resize(index + 1);
+                        },
+                        [=](size_t indexA, size_t indexB) {
+                                std::swap(textures[indexA], textures[indexB]);
+                        }
+                                       );
+
+                        auto& texture = textures[txIndex];
+                        texture.target = GL_TEXTURE_2D;
+
+                        createImageCaptureFramebuffer(framebuffer.resource, texture.resource,
+                                                      framebuffer.depthbuffer, { framebufferDef.width, framebufferDef.height });
+                        framebufferCreations++;
+
+                        auto textureDef = framebufferDef;
+                        textureDef.data.resize(sizeof(GLint));
+                        *((GLint*) &textureDef.data.front()) = framebuffer.resource.id;
+                        textureDef.pixelFiller = framebufferPixelFiller;
+
+                        textureDefs[txIndex] = textureDef;
+                        framebuffer.textureDef = textureDef;
+                        framebufferDefs[framebufferIndex] = textureDef;
+                },
+                [=](size_t indexA, size_t indexB) {
+                        std::swap(framebuffers[indexA], framebuffers[indexB]);
+                });
+
+                auto const& framebuffer = framebuffers[fbIndex];
+                return { framebuffer.resource.id, framebuffer.textureDef };
         }
 
         struct MeshMaterials {
@@ -48,7 +130,7 @@ public:
                 [&geometryDef](GeometryDef const& element) {
                         return element.data == geometryDef.data
                                && element.definer == geometryDef.definer
-                               && element.arrayCount == element.arrayCount;
+                               && element.arrayCount == geometryDef.arrayCount;
                 },
                 [=](GeometryDef const& def, size_t meshIndex) {
                         meshes.resize(1 + meshIndex);
@@ -95,10 +177,7 @@ public:
                 auto index = findOrCreate<TextureDef>(textureHeap,
                                                       textureDef,
                 [&textureDef](TextureDef const& element) {
-                        return element.data == textureDef.data
-                               && element.width == textureDef.width
-                               && element.height == textureDef.height
-                               && element.pixelFiller == textureDef.pixelFiller;
+                        return isEqual(element, textureDef);
                 },
                 [=](TextureDef const& def, size_t index) {
                         textures.resize(index + 1);
@@ -120,18 +199,18 @@ public:
                                 glBindTexture(texture.target, texture.resource.id);
                                 defineNonMipmappedARGB32Texture(def.width,
                                                                 def.height,
-                                                                [&def](uint32_t* data, int width, int height) {
-                                                                        def.pixelFiller(data, width, height, 0, &def.data.front());
-                                                                });
+                                [&def](uint32_t* data, int width, int height) {
+                                        def.pixelFiller(data, width, height, 0, &def.data.front());
+                                });
                                 break;
                         case GL_TEXTURE_3D:
                                 glBindTexture(texture.target, texture.resource.id);
                                 defineNonMipmappedARGB32Texture3d(def.width,
                                                                   def.height,
                                                                   def.depth,
-                                                                  [&def](uint32_t* data, int width, int height, int depth) {
-                                                                          def.pixelFiller(data, width, height, depth, &def.data.front());
-                                                                  });
+                                [&def](uint32_t* data, int width, int height, int depth) {
+                                        def.pixelFiller(data, width, height, depth, &def.data.front());
+                                });
                                 break;
                         };
                         glBindTexture(texture.target, 0);
@@ -209,7 +288,7 @@ private:
 
                         }
                         definitions[index] = def;
-                        return firstRecyclableIndex;
+                        return index;
                 }
         }
 
@@ -243,8 +322,10 @@ private:
                         createAt(def, index);
                 }
 
-                auto newIndex = heap.firstInactiveIndex;
-                if (newIndex != index) {
+                auto newIndex = index;
+                if (heap.firstInactiveIndex < newIndex) {
+                        newIndex = heap.firstInactiveIndex;
+
                         std::swap(heap.definitions.at(newIndex), heap.definitions.at(index));
                         swap(newIndex, index);
                 }
@@ -260,6 +341,17 @@ private:
                 BufferResource indices;
                 std::vector<BufferResource> vertexBuffers;
         };
+
+        struct Framebuffer {
+                FramebufferResource resource;
+                RenderbufferResource depthbuffer;
+                TextureDef textureDef;
+        };
+
+        std::vector<Framebuffer> framebuffers;
+        std::vector<FramebufferDef> framebufferDefs;
+        RecyclingHeap<FramebufferDef> framebufferHeap = { 0, 0, framebufferDefs };
+        long framebufferCreations = 0;
 
         std::vector<Mesh> meshes;
         std::vector<GeometryDef> meshDefs;
