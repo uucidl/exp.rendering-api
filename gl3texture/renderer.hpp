@@ -75,6 +75,8 @@ using FrameSeriesResource =
         std::unique_ptr<FrameSeries, std::function<void(FrameSeries*)>>;
 FrameSeriesResource makeFrameSeries();
 
+void beginFrame(FrameSeries& output);
+
 void drawOne(FrameSeries& output,
              ProgramDef programDef,
              ProgramInputs inputs,

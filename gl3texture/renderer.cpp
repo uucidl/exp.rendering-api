@@ -65,8 +65,6 @@ void innerDrawOne(FrameSeries& output,
                   ProgramInputs inputs,
                   GeometryDef geometryDef)
 {
-        output.beginFrame();
-
         // define and draw the content of the frame
 
         if (programDef.vertexShader.source.empty()
@@ -254,11 +252,15 @@ void innerDrawMany(FrameSeries& output, ProgramDef program,
 
 }
 
+void beginFrame(FrameSeries& output)
+{
+        output.beginFrame();
+}
+
 void drawMany(FrameSeries& output,
               ProgramDef program,
               std::vector<RenderObjectDef> objects)
 {
-        output.beginFrame();
         innerDrawMany(output, program, objects);
 }
 
@@ -267,8 +269,6 @@ TextureDef drawManyIntoTexture(FrameSeries& output,
                                ProgramDef program,
                                std::vector<RenderObjectDef> objects)
 {
-        output.beginFrame();
-
         auto fb = output.framebuffer(spec);
         glBindFramebuffer(GL_FRAMEBUFFER, fb.framebufferId);
         innerDrawMany(output, program, objects);
@@ -282,6 +282,5 @@ void drawOne(FrameSeries& output,
              ProgramInputs inputs,
              GeometryDef geometryDef)
 {
-        output.beginFrame();
         innerDrawOne(output, programDef, inputs, geometryDef);
 }

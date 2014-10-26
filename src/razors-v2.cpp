@@ -200,6 +200,8 @@ void draw(RazorsV2& self, double ms)
                 .height = 100,
         };
 
+        beginFrame(*output);
+
         framebuffer1 = drawManyIntoTexture
                        (*output,
                         framebuffer1,

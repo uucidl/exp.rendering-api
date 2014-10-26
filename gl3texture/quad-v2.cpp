@@ -165,6 +165,8 @@ extern void render_textured_quad_v2(uint64_t time_micros)
                 return textureDef;
         };
 
+        beginFrame(*output);
+
         drawOne(*output, {
                 HSTD_DFIELD(vertexShader, vertexShaderFromFile("main.vs")),
                 HSTD_DFIELD(fragmentShader, fragmentShaderFromFile("main.fs"))
