@@ -24,7 +24,8 @@ struct ProgramDef {
         FragmentShaderDef fragmentShader;
 };
 
-using TextureDefFn = void (*)(uint32_t*, int width, int height, int depth, void const* data);
+using TextureDefFn = void (*)(uint32_t*, int width, int height, int depth,
+                              void const* data);
 
 struct TextureDef {
         std::vector<char> data;
