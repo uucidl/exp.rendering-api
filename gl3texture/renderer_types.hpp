@@ -55,9 +55,11 @@ public:
         {
                 // we should invalidate arrays so as to garbage
                 // collect / recycle the now un-needed definitions
+                reset(framebufferHeap);
                 reset(meshHeap);
                 reset(textureHeap);
                 reset(programHeap);
+        }
 
         struct FramebufferMaterials {
                 GLuint framebufferId;
