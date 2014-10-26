@@ -93,6 +93,7 @@ void drawOne(FrameSeries& output,
                                 }
                                 auto const& texture = output.texture(textureInput.content);
                                 if (texture.target == 0) {
+                                        printf("texture target is 0, ignoring texture\n");
                                         continue;
                                 }
                                 auto unit = GL_TEXTURE0 + unitIndex;
