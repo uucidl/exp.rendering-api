@@ -325,14 +325,16 @@ private:
                 }
 
                 auto newIndex = index;
-                if (heap.firstInactiveIndex < newIndex) {
-                        newIndex = heap.firstInactiveIndex;
+                if (newIndex >= heap.firstInactiveIndex) {
+                        if (newIndex != heap.firstInactiveIndex) {
+                                newIndex = heap.firstInactiveIndex;
 
-                        std::swap(heap.definitions.at(newIndex), heap.definitions.at(index));
-                        swap(newIndex, index);
+                                std::swap(heap.definitions.at(newIndex), heap.definitions.at(index));
+                                swap(newIndex, index);
+                        }
+
+                        heap.firstInactiveIndex++;
                 }
-
-                heap.firstInactiveIndex = newIndex + 1;
 
                 return newIndex;
         }
