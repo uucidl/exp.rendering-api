@@ -22,6 +22,7 @@ struct ProgramBindings {
         std::vector<ArrayAttrib> arrayAttribs;
 
         std::vector<GLint> floatVectorsUniforms;
+        std::vector<GLint> intVectorsUniforms;
 };
 }
 
@@ -53,6 +54,13 @@ ProgramBindings programBindings(FrameSeries::ShaderProgramMaterials const&
                        std::end(inputs.floatValues),
                        std::back_inserter(bindings.floatVectorsUniforms),
         [&program](ProgramInputs::FloatInput const& element) {
+                return glGetUniformLocation(program.programId, element.name.c_str());
+        });
+
+        std::transform(std::begin(inputs.intValues),
+                       std::end(inputs.intValues),
+                       std::back_inserter(bindings.intVectorsUniforms),
+        [&program](ProgramInputs::IntInput const& element) {
                 return glGetUniformLocation(program.programId, element.name.c_str());
         });
 
@@ -204,8 +212,49 @@ void innerDrawOne(FrameSeries& output,
                         }
                 };
 
+                auto bindIntUniforms = [&inputs,&vars]() {
+                        auto i = 0;
+                        for (auto& intInput : inputs.intValues) {
+                                auto uniformId = vars.intVectorsUniforms[i];
+                                i++;
+
+                                if (uniformId < 0) {
+                                        continue;
+                                }
+
+                                auto const& values = intInput.values;
+                                auto const width  = values.size();
+
+                                void (*set_many_vecn)(GLint location, GLsizei count,
+                                                      const GLint *value) = nullptr;
+
+                                switch (width) {
+                                case 4:
+                                        set_many_vecn = glUniform4iv;
+                                        break;
+                                case 3:
+                                        set_many_vecn = glUniform3iv;
+                                        break;
+                                case 2:
+                                        set_many_vecn = glUniform2iv;
+                                        break;
+                                case 1:
+                                        set_many_vecn = glUniform1iv;
+                                        break;
+                                }
+
+                                if (!set_many_vecn) {
+                                        printf("invalid number of int inputs: %lu\n", width);
+                                }
+
+                                set_many_vecn(uniformId, 1, &values.front());
+                                OGL_TRACE;
+                        }
+                };
+
                 auto activeTextureUnits = bindTextureUnits();
                 bindFloatUniforms();
+                bindIntUniforms();
 
                 auto const& mesh = output.mesh(geometryDef);
 

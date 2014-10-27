@@ -156,7 +156,8 @@ void draw(RazorsV2& self, double ms)
                                         //ProgramInputs::FloatInput { .name = "iResolution", .values = { static_cast<float> (viewport.width), static_cast<float> (viewport.height) } },
                                         ProgramInputs::FloatInput { .name = "g_color", .values = transparentWhite(0.9998f)},
                                         ProgramInputs::FloatInput { .name = "transform", .values = scaleTransform(scale), .last_row = 3 },
-                                }
+                                },
+                                {},
                         },
                         .geometry = fullscreenQuad()
                 };

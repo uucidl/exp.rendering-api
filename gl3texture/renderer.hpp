@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <functional>
 #include <string>
 #include <vector>
@@ -51,9 +52,15 @@ struct ProgramInputs {
                 int last_row;
         };
 
+        struct IntInput {
+                std::string name;
+                std::vector<int32_t> values;
+        };
+
         std::vector<AttribArrayInput> attribs;
         std::vector<TextureInput> textures;
         std::vector<FloatInput> floatValues;
+        std::vector<IntInput> intValues;
 };
 
 struct GeometryDef {

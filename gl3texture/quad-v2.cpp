@@ -195,8 +195,10 @@ extern void render_textured_quad_v2(uint64_t time_micros)
                                         0.0, 0.0, 1.0, 0.0,
                                         0.0, 0.0, 0.0, 1.0
                                 }, 3
-                        }
-                }
+                        },
+                },
+                {},
+
         }
         ,
         quad({
