@@ -1,9 +1,11 @@
 #include "estd.hpp"
+#include "hstd.hpp"
 #include "inlineshaders.hpp"
 #include "razors-common.hpp"
 #include "razorsV2.hpp"
 
 #include "../gl3companion/glresource_types.hpp"
+#include "../gl3companion/glinlines.hpp"
 #include "../gl3texture/quad.hpp"
 #include "../gl3texture/renderer.hpp"
 
@@ -19,12 +21,6 @@ RazorsV2Resource makeRazorsV2()
 {
         return estd::make_unique<RazorsV2>();
 }
-
-struct FramebufferDef {
-        std::string id;
-        int width;
-        int height;
-};
 
 struct Rect {
         float x;
@@ -68,6 +64,19 @@ static void debug_texture(uint32_t* pixels, int width, int height, int depth,
         }
 }
 
+static void withPremultipliedAlphaBlending(std::function<void()> fn)
+{
+        glEnable(GL_BLEND);
+        glBlendFunc (GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+        glDisable (GL_DEPTH_TEST);
+        glDepthMask (GL_FALSE);
+
+        fn();
+
+        glDepthMask (GL_TRUE);
+        glEnable (GL_DEPTH_TEST);
+        glDisable(GL_BLEND);
+}
 
 void draw(RazorsV2& self, double ms)
 {
@@ -130,7 +139,8 @@ void draw(RazorsV2& self, double ms)
         };
 
 
-        auto projector = [=](TextureDef const& texture) -> RenderObjectDef {
+        auto projector = [=](TextureDef const& texture,
+        float scale) -> RenderObjectDef {
                 return RenderObjectDef {
                         .inputs = ProgramInputs {
                                 {
@@ -145,7 +155,7 @@ void draw(RazorsV2& self, double ms)
                                 {
                                         //ProgramInputs::FloatInput { .name = "iResolution", .values = { static_cast<float> (viewport.width), static_cast<float> (viewport.height) } },
                                         ProgramInputs::FloatInput { .name = "g_color", .values = transparentWhite(0.9998f)},
-                                        ProgramInputs::FloatInput { .name = "transform", .values = scaleTransform(0.990f + 0.010f * sin(TAU * ms / 5000.0)), .last_row = 3 },
+                                        ProgramInputs::FloatInput { .name = "transform", .values = scaleTransform(scale), .last_row = 3 },
                                 }
                         },
                         .geometry = fullscreenQuad()
@@ -179,7 +189,7 @@ void draw(RazorsV2& self, double ms)
                         {
                                 { .name = "depth", .values = { (float)(0.5 * (1.0 + sin(TAU * ms / 3000.0))) } } ,
                                 { .name = "transform", .values = identityMatrix(), .last_row = 3 },
-                                { .name = "g_color", .values = { 1.0f, 1.0f, 1.0f, 1.0f } },
+                                { .name = "g_color", .values = transparentWhite(0.06f) },
                         },
                 },
                 .geometry = fullscreenQuad(),
@@ -195,25 +205,52 @@ void draw(RazorsV2& self, double ms)
         };
 
         static auto output = makeFrameSeries();
-        static auto framebuffer1 = TextureDef {
-                .width = 100,
-                .height = 100,
+        static auto previousFrame = TextureDef {
+                .width = 512,
+                .height = 512,
+        };
+        static auto resultFrame = TextureDef {
+                .width = 1024,
+                .height = 1024,
         };
 
         beginFrame(*output);
 
-        framebuffer1 = drawManyIntoTexture
-                       (*output,
-                        framebuffer1,
-        ProgramDef {
-                .vertexShader = vertexShader(seedVS),
-                .fragmentShader = fragmentShader(seedFS),
-        },
-        { seed });
+        withPremultipliedAlphaBlending([&seed,ms,fragmentShader,vertexShader,
+        projector]() {
+                previousFrame = drawManyIntoTexture
+                                (*output,
+                                 previousFrame,
+                ProgramDef {
+                        .vertexShader = vertexShader(defaultVS),
+                        .fragmentShader = fragmentShader(defaultFS),
+                }, {
+                        projector(resultFrame, 0.990f + 0.010f * sin(TAU * ms / 5000.0)),
+                }, HSTD_NTRUE(mustClear));
+                previousFrame = drawManyIntoTexture
+                                (*output,
+                                 previousFrame,
+                ProgramDef {
+                        .vertexShader = vertexShader(seedVS),
+                        .fragmentShader = fragmentShader(seedFS),
+                }, {
+                        seed,
+                }, !HSTD_NTRUE(mustClear));
+        });
 
+        resultFrame = drawManyIntoTexture
+                      (*output,
+                       resultFrame,
+        ProgramDef {
+                .vertexShader = vertexShader(defaultVS),
+                .fragmentShader = fragmentShader(defaultFS),
+        },
+        { projector(previousFrame, 1.004f) }, HSTD_NTRUE(mustClear));
+
+        clear();
         drawMany(*output, ProgramDef {
                 .vertexShader = vertexShader(defaultVS),
                 .fragmentShader = fragmentShader(defaultFS),
         },
-        { projector(framebuffer1) });
+        { projector(resultFrame, 1.0f) });
 }

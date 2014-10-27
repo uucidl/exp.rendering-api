@@ -2,6 +2,7 @@
 
 #include "renderer_types.hpp"
 
+#include "../gl3companion/glinlines.hpp"
 #include "../src/estd.hpp"
 
 FrameSeriesResource makeFrameSeries()
@@ -267,12 +268,27 @@ void drawMany(FrameSeries& output,
 TextureDef drawManyIntoTexture(FrameSeries& output,
                                TextureDef spec,
                                ProgramDef program,
-                               std::vector<RenderObjectDef> objects)
+                               std::vector<RenderObjectDef> objects,
+                               bool mustClear)
 {
+        auto resolution = viewport();
         auto fb = output.framebuffer(spec);
+
         glBindFramebuffer(GL_FRAMEBUFFER, fb.framebufferId);
+        glDrawBuffer (GL_COLOR_ATTACHMENT0);
+        glReadBuffer (GL_COLOR_ATTACHMENT0);
+        glViewport (0, 0, fb.textureDef.width, fb.textureDef.height);
+
+        if (mustClear) {
+                clear();
+        }
+
         innerDrawMany(output, program, objects);
+
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glReadBuffer (GL_BACK);
+        glDrawBuffer (GL_BACK);
+        glViewport(0, 0, resolution.first, resolution.second);
 
         return fb.textureDef;
 }

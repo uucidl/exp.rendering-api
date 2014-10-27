@@ -89,4 +89,4 @@ void drawMany(FrameSeries& output,
 TextureDef drawManyIntoTexture(FrameSeries& output,
                                TextureDef spec,
                                ProgramDef program,
-                               std::vector<RenderObjectDef> objects);
+                               std::vector<RenderObjectDef> objects, bool mustClear);

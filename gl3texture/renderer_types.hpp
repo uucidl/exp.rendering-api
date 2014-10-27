@@ -199,6 +199,9 @@ public:
                         switch(texture.target) {
                         case GL_TEXTURE_2D:
                                 glBindTexture(texture.target, texture.resource.id);
+                                if (!def.pixelFiller) {
+                                        break;
+                                }
                                 defineNonMipmappedARGB32Texture(def.width,
                                                                 def.height,
                                 [&def](uint32_t* data, int width, int height) {
@@ -207,6 +210,9 @@ public:
                                 break;
                         case GL_TEXTURE_3D:
                                 glBindTexture(texture.target, texture.resource.id);
+                                if (!def.pixelFiller) {
+                                        break;
+                                }
                                 defineNonMipmappedARGB32Texture3d(def.width,
                                                                   def.height,
                                                                   def.depth,
