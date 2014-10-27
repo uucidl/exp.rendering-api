@@ -80,12 +80,7 @@ static void withPremultipliedAlphaBlending(std::function<void()> fn)
 
 void draw(RazorsV2& self, double ms)
 {
-        struct Viewport {
-                int width;
-                int height;
-        };
-
-        auto viewport = Viewport { 256, 256 };
+        auto resolution = viewport();
 
         auto transparentWhite = [](float alpha) -> std::vector<float> {
                 return { alpha*1.0f, alpha*1.0f, alpha*1.0f, alpha };
@@ -140,7 +135,7 @@ void draw(RazorsV2& self, double ms)
 
 
         auto projector = [=](TextureDef const& texture,
-        float scale) -> RenderObjectDef {
+        float scale, std::pair<GLint, GLint> viewport) -> RenderObjectDef {
                 return RenderObjectDef {
                         .inputs = ProgramInputs {
                                 {
@@ -153,11 +148,12 @@ void draw(RazorsV2& self, double ms)
                                         }
                                 },
                                 {
-                                        //ProgramInputs::FloatInput { .name = "iResolution", .values = { static_cast<float> (viewport.width), static_cast<float> (viewport.height) } },
                                         ProgramInputs::FloatInput { .name = "g_color", .values = transparentWhite(0.9998f)},
                                         ProgramInputs::FloatInput { .name = "transform", .values = scaleTransform(scale), .last_row = 3 },
+                                        ProgramInputs::FloatInput { .name = "iResolution", .values = { (float) viewport.first, (float) viewport.second, 0.0 } },
                                 },
                                 {},
+
                         },
                         .geometry = fullscreenQuad()
                 };
@@ -165,16 +161,16 @@ void draw(RazorsV2& self, double ms)
 
         auto seedTexture = TextureDef {
                 {},
-                viewport.width,
-                viewport.height,
+                256,
+                256,
                 12,
                 (TextureDefFn) seed_texture,
         };
 
         auto debugTexture = TextureDef {
                 {},
-                200,
-                200,
+                256,
+                256,
                 0,
                 debug_texture,
         };
@@ -192,6 +188,7 @@ void draw(RazorsV2& self, double ms)
                                 { .name = "transform", .values = identityMatrix(), .last_row = 3 },
                                 { .name = "g_color", .values = transparentWhite(0.06f) },
                         },
+                        {},
                 },
                 .geometry = fullscreenQuad(),
         };
@@ -218,15 +215,15 @@ void draw(RazorsV2& self, double ms)
         beginFrame(*output);
 
         withPremultipliedAlphaBlending([&seed,ms,fragmentShader,vertexShader,
-        projector]() {
+        projector,resolution]() {
                 previousFrame = drawManyIntoTexture
                                 (*output,
                                  previousFrame,
                 ProgramDef {
                         .vertexShader = vertexShader(defaultVS),
-                        .fragmentShader = fragmentShader(defaultFS),
+                        .fragmentShader = fragmentShader(projectorFS),
                 }, {
-                        projector(resultFrame, 0.990f + 0.010f * sin(TAU * ms / 5000.0)),
+                        projector(resultFrame, 0.990f + 0.010f * sin(TAU * ms / 5000.0), resolution),
                 }, HSTD_NTRUE(mustClear));
                 previousFrame = drawManyIntoTexture
                                 (*output,
@@ -244,14 +241,14 @@ void draw(RazorsV2& self, double ms)
                        resultFrame,
         ProgramDef {
                 .vertexShader = vertexShader(defaultVS),
-                .fragmentShader = fragmentShader(defaultFS),
+                .fragmentShader = fragmentShader(projectorFS),
         },
-        { projector(previousFrame, 1.004f) }, HSTD_NTRUE(mustClear));
+        { projector(previousFrame, 1.004f, resolution) }, HSTD_NTRUE(mustClear));
 
         clear();
         drawMany(*output, ProgramDef {
                 .vertexShader = vertexShader(defaultVS),
-                .fragmentShader = fragmentShader(defaultFS),
+                .fragmentShader = fragmentShader(projectorFS),
         },
-        { projector(resultFrame, 1.0f) });
+        { projector(resultFrame, 1.0f, resolution) });
 }
