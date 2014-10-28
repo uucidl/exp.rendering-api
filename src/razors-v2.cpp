@@ -54,16 +54,6 @@ size_t quadDefiner(BufferResource const& elementBuffer,
         return indicesCount;
 }
 
-static void debug_texture(uint32_t* pixels, int width, int height, int depth,
-                          void const* data)
-{
-        for (int j = 0; j < height; j++) {
-                for (int i = 0; i < width; i++) {
-                        pixels[i + j * width] = 0xFF408080;
-                }
-        }
-}
-
 void draw(RazorsV2& self, double ms)
 {
         auto resolution = viewport();
@@ -145,29 +135,21 @@ void draw(RazorsV2& self, double ms)
                 };
         };
 
-        auto seedTexture = TextureDef {
-                {},
-                256,
-                256,
-                12,
-                (TextureDefFn) seed_texture,
-        };
-
-        auto debugTexture = TextureDef {
-                {},
-                256,
-                256,
-                0,
-                debug_texture,
-        };
-
         auto seed = RenderObjectDef {
                 .inputs = ProgramInputs {
                         {
                                 { "position", 2 }, { "texcoord", 2 }
                         },
                         {
-                                { .name = "tex", seedTexture },
+                                {
+                                        .name = "tex", TextureDef {
+                                                {},
+                                                256,
+                                                256,
+                                                12,
+                                                (TextureDefFn) seed_texture,
+                                        }
+                                },
                         },
                         {
                                 { .name = "depth", .values = { (float)(0.5 * (1.0 + sin(TAU * ms / 3000.0))) } } ,
