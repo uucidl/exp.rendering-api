@@ -24,6 +24,39 @@ struct ProgramBindings {
         std::vector<GLint> floatVectorsUniforms;
         std::vector<GLint> intVectorsUniforms;
 };
+
+struct FragmentOperationsScope {
+        FragmentOperationsScope(FragmentOperationsDef const& def)
+        {
+                if (def.flags & FragmentOperationsDef::CLEAR) {
+                        glClearColor (def.clearRGBA[0],
+                                      def.clearRGBA[0],
+                                      def.clearRGBA[0],
+                                      def.clearRGBA[0]);
+                        glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                }
+
+                if (def.flags &
+                    FragmentOperationsDef::BLEND_PREMULTIPLIED_ALPHA) {
+                        glEnable(GL_BLEND);
+                        glBlendFunc (GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+                        glDisable (GL_DEPTH_TEST);
+                        glDepthMask (GL_FALSE);
+                }
+
+                if (def.flags & FragmentOperationsDef::DEPTH_TEST) {
+                        glDepthMask (GL_TRUE);
+                        glEnable(GL_DEPTH_TEST);
+                }
+        }
+
+        ~FragmentOperationsScope()
+        {
+                glDisable(GL_BLEND);
+                glDepthMask (GL_FALSE);
+                glDisable(GL_DEPTH_TEST);
+        }
+};
 }
 
 ProgramBindings programBindings(FrameSeries::ShaderProgramMaterials const&
@@ -308,17 +341,19 @@ void beginFrame(FrameSeries& output)
 }
 
 void drawMany(FrameSeries& output,
+              FragmentOperationsDef fragmentOperations,
               ProgramDef program,
               std::vector<RenderObjectDef> objects)
 {
+        FragmentOperationsScope withFO(fragmentOperations);
         innerDrawMany(output, program, objects);
 }
 
 TextureDef drawManyIntoTexture(FrameSeries& output,
                                TextureDef spec,
+                               FragmentOperationsDef fragmentOperations,
                                ProgramDef program,
-                               std::vector<RenderObjectDef> objects,
-                               bool mustClear)
+                               std::vector<RenderObjectDef> objects)
 {
         auto resolution = viewport();
         auto fb = output.framebuffer(spec);
@@ -328,11 +363,11 @@ TextureDef drawManyIntoTexture(FrameSeries& output,
         glReadBuffer (GL_COLOR_ATTACHMENT0);
         glViewport (0, 0, fb.textureDef.width, fb.textureDef.height);
 
-        if (mustClear) {
-                clear();
-        }
+        {
+                FragmentOperationsScope withFO(fragmentOperations);
 
-        innerDrawMany(output, program, objects);
+                innerDrawMany(output, program, objects);
+        }
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glReadBuffer (GL_BACK);
@@ -343,9 +378,11 @@ TextureDef drawManyIntoTexture(FrameSeries& output,
 }
 
 void drawOne(FrameSeries& output,
+             FragmentOperationsDef fragmentOperations,
              ProgramDef programDef,
              ProgramInputs inputs,
              GeometryDef geometryDef)
 {
+        FragmentOperationsScope withFO(fragmentOperations);
         innerDrawOne(output, programDef, inputs, geometryDef);
 }

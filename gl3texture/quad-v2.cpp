@@ -168,6 +168,11 @@ extern void render_textured_quad_v2(uint64_t time_micros)
         beginFrame(*output);
 
         drawOne(*output, {
+                0*FragmentOperationsDef::CLEAR |
+                0*FragmentOperationsDef::BLEND_PREMULTIPLIED_ALPHA |
+                0*FragmentOperationsDef::DEPTH_TEST,
+                {}
+        }, {
                 HSTD_DFIELD(vertexShader, vertexShaderFromFile("main.vs")),
                 HSTD_DFIELD(fragmentShader, fragmentShaderFromFile("main.fs"))
         }, {

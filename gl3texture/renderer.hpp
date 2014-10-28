@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cstdint>
 #include <functional>
 #include <string>
@@ -11,6 +12,17 @@ class FrameSeries;
 class BufferResource;
 
 // value types
+
+struct FragmentOperationsDef {
+        enum {
+                DEPTH_TEST = 1 << 0,
+                BLEND_PREMULTIPLIED_ALPHA = 1 << 1,
+                CLEAR = 1 << 2,
+        };
+
+        int flags;
+        std::array<float,4> clearRGBA;
+};
 
 struct VertexShaderDef {
         std::string source;
@@ -85,15 +97,18 @@ FrameSeriesResource makeFrameSeries();
 void beginFrame(FrameSeries& output);
 
 void drawOne(FrameSeries& output,
+             FragmentOperationsDef fragmentOperationsDef,
              ProgramDef programDef,
              ProgramInputs inputs,
              GeometryDef geometryDef);
 
 void drawMany(FrameSeries& output,
+              FragmentOperationsDef fragmentOperationsDef,
               ProgramDef program,
               std::vector<RenderObjectDef> objects);
 
 TextureDef drawManyIntoTexture(FrameSeries& output,
                                TextureDef spec,
+                               FragmentOperationsDef fragmentOperationsDef,
                                ProgramDef program,
-                               std::vector<RenderObjectDef> objects, bool mustClear);
+                               std::vector<RenderObjectDef> objects);

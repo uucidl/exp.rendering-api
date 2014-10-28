@@ -64,20 +64,6 @@ static void debug_texture(uint32_t* pixels, int width, int height, int depth,
         }
 }
 
-static void withPremultipliedAlphaBlending(std::function<void()> fn)
-{
-        glEnable(GL_BLEND);
-        glBlendFunc (GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-        glDisable (GL_DEPTH_TEST);
-        glDepthMask (GL_FALSE);
-
-        fn();
-
-        glDepthMask (GL_TRUE);
-        glEnable (GL_DEPTH_TEST);
-        glDisable(GL_BLEND);
-}
-
 void draw(RazorsV2& self, double ms)
 {
         auto resolution = viewport();
@@ -212,43 +198,42 @@ void draw(RazorsV2& self, double ms)
                 .height = 1024,
         };
 
+        auto const clearFragments = FragmentOperationsDef {
+                FragmentOperationsDef::CLEAR, {}
+        };
+        auto const blendFragments = FragmentOperationsDef {
+                FragmentOperationsDef::BLEND_PREMULTIPLIED_ALPHA, {}
+        };
+        auto const clearAndBlendFragments = FragmentOperationsDef {
+                FragmentOperationsDef::CLEAR | FragmentOperationsDef::BLEND_PREMULTIPLIED_ALPHA, {}
+        };
+
+        auto const seedProgram = ProgramDef {
+                .vertexShader = vertexShader(seedVS),
+                .fragmentShader = fragmentShader(seedFS),
+        };
+
+        auto const projectorProgram = ProgramDef {
+                .vertexShader = vertexShader(defaultVS),
+                .fragmentShader = fragmentShader(projectorFS),
+        };
+
         beginFrame(*output);
 
-        withPremultipliedAlphaBlending([&seed,ms,fragmentShader,vertexShader,
-        projector,resolution]() {
-                previousFrame = drawManyIntoTexture
-                                (*output,
-                                 previousFrame,
-                ProgramDef {
-                        .vertexShader = vertexShader(defaultVS),
-                        .fragmentShader = fragmentShader(projectorFS),
-                }, {
-                        projector(resultFrame, 0.990f + 0.010f * sin(TAU * ms / 5000.0), resolution),
-                }, HSTD_NTRUE(mustClear));
-                previousFrame = drawManyIntoTexture
-                                (*output,
-                                 previousFrame,
-                ProgramDef {
-                        .vertexShader = vertexShader(seedVS),
-                        .fragmentShader = fragmentShader(seedFS),
-                }, {
-                        seed,
-                }, !HSTD_NTRUE(mustClear));
+        previousFrame = drawManyIntoTexture
+                        (*output, previousFrame, clearAndBlendFragments,
+        projectorProgram, {
+                projector(resultFrame, 0.990f + 0.010f * sin(TAU * ms / 5000.0), resolution),
+        });
+        previousFrame = drawManyIntoTexture
+        (*output, previousFrame, blendFragments, seedProgram, {
+                seed,
         });
 
         resultFrame = drawManyIntoTexture
-                      (*output,
-                       resultFrame,
-        ProgramDef {
-                .vertexShader = vertexShader(defaultVS),
-                .fragmentShader = fragmentShader(projectorFS),
-        },
-        { projector(previousFrame, 1.004f, resolution) }, HSTD_NTRUE(mustClear));
+                      (*output, resultFrame, clearFragments, projectorProgram,
+        { projector(previousFrame, 1.004f, resolution) });
 
-        clear();
-        drawMany(*output, ProgramDef {
-                .vertexShader = vertexShader(defaultVS),
-                .fragmentShader = fragmentShader(projectorFS),
-        },
+        drawMany(*output, clearFragments, projectorProgram,
         { projector(resultFrame, 1.0f, resolution) });
 }
