@@ -17,8 +17,8 @@ void createImageCaptureFramebuffer(FramebufferResource& framebuffer,
         }
 
         withTexture(framebufferResult,
-                    std::bind(defineNonMipmappedARGB32Texture,
-                              resolution.first, resolution.second, nullptr));
+                    std::bind(defineNonMipmappedFloatTexture,
+                              resolution.first, resolution.second));
 
         withFramebuffer(framebuffer,
         [&framebufferResult,&renderbuffer,resolution]() {

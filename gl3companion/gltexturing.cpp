@@ -6,6 +6,30 @@
 #include <functional>
 #include <vector>
 
+void defineNonMipmappedFloatTexture(
+        int const width, int const height)
+{
+        auto const target = GL_TEXTURE_2D;
+        auto pixelFiller = nullptr;
+        // no mipmapping
+        glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        if (!pixelFiller) {
+                glTexImage2D(target,
+                             0,
+                             GL_RGBA16F,
+                             width,
+                             height,
+                             0,
+                             GL_RGBA,
+                             GL_UNSIGNED_INT_8_8_8_8_REV,
+                             NULL);
+                return;
+        }
+
+}
+
 // pixels are layed out in rows of width pixels from 0 to height
 void defineNonMipmappedARGB32Texture(
         int const width, int const height,
