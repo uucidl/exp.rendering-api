@@ -11,9 +11,10 @@ void defineNonMipmappedFloatTexture(
 {
         auto const target = GL_TEXTURE_2D;
         auto pixelFiller = nullptr;
+
         // no mipmapping
-        glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(target, GL_TEXTURE_BASE_LEVEL, 0);
+        glTexParameteri(target, GL_TEXTURE_MAX_LEVEL, 0);
 
         if (!pixelFiller) {
                 glTexImage2D(target,
@@ -38,13 +39,13 @@ void defineNonMipmappedARGB32Texture(
         auto const target = GL_TEXTURE_2D;
 
         // no mipmapping
-        glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(target, GL_TEXTURE_BASE_LEVEL, 0);
+        glTexParameteri(target, GL_TEXTURE_MAX_LEVEL, 0);
 
         if (!pixelFiller) {
                 glTexImage2D(target,
                              0,
-                             GL_RGBA,
+                             GL_RGBA8,
                              width,
                              height,
                              0,
@@ -60,7 +61,7 @@ void defineNonMipmappedARGB32Texture(
 
         glTexImage2D(target,
                      0,
-                     GL_RGBA,
+                     GL_RGBA8,
                      width,
                      height,
                      0,
@@ -83,13 +84,13 @@ void defineNonMipmappedARGB32Texture3d(int const width,
         auto const target = GL_TEXTURE_3D;
 
         // no mipmapping
-        glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(target, GL_TEXTURE_BASE_LEVEL, 0);
+        glTexParameteri(target, GL_TEXTURE_MAX_LEVEL, 0);
 
         if (!pixelFiller) {
                 glTexImage3D(GL_TEXTURE_2D,
                              0,
-                             GL_RGBA,
+                             GL_RGBA8,
                              width,
                              height,
                              depth,
@@ -106,7 +107,7 @@ void defineNonMipmappedARGB32Texture3d(int const width,
 
         glTexImage3D(target,
                      0,
-                     GL_RGBA,
+                     GL_RGBA8,
                      width,
                      height,
                      depth,
