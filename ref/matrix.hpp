@@ -444,3 +444,52 @@ static inline void matrix4_from_quaternion (matrix4 matrix, vector4 q)
         matrix [3 + 2*4] = 0.0f;
         matrix [3 + 3*4] = 1.0f;
 }
+
+static inline void scale1(matrix4& matrix, double f)
+{
+        matrix4 t;
+        matrix4_identity(t);
+
+        t[0] *= static_cast<float>(-f);
+        t[5] *= static_cast<float>(f);
+
+        matrix4_mul(matrix, t);
+}
+
+static inline void rotx(matrix4& matrix, double f)
+{
+        vector4 axis;
+        vector4_make(axis, 1.0f, 0.0f, 0.0f, 0.0f);
+        vector4 quat;
+        quaternion_make_rotation(quat, static_cast<float>(360.0f * f), axis);
+        matrix4 rotation;
+        matrix4_from_quaternion(rotation, quat);
+        matrix4_mul(matrix, rotation);
+}
+
+static inline void rotz(matrix4& matrix, double f)
+{
+        vector4 axis;
+        vector4_make(axis, 0.0f, 0.0f, 1.0f, 0.0f);
+        vector4 quat;
+        quaternion_make_rotation(quat, static_cast<float>(360.0f * f), axis);
+        matrix4 rotation;
+        matrix4_from_quaternion(rotation, quat);
+        matrix4_mul(matrix, rotation);
+}
+
+static inline void moveh(matrix4& matrix, double f)
+{
+        matrix4 t;
+        matrix4_identity(t);
+        t[3*4 + 0] = static_cast<float>(f);
+        matrix4_mul(matrix, t);
+}
+
+static inline void movev(matrix4& matrix, double f)
+{
+        matrix4 t;
+        matrix4_identity(t);
+        t[3*4 + 1] = static_cast<float>(f);
+        matrix4_mul(matrix, t);
+}
