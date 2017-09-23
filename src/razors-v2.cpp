@@ -8,6 +8,7 @@
 #include "../gl3companion/glinlines.hpp"
 #include "../gl3texture/quad.hpp"
 #include "../gl3texture/renderer.hpp"
+#include "../ref/matrix.hpp"
 
 #include <cmath>
 
@@ -109,7 +110,6 @@ void draw(RazorsV2& self, double ms)
                 };
         };
 
-
         auto projector = [=](TextureDef const& texture,
         float scale, std::pair<GLint, GLint> viewport) -> RenderObjectDef {
                 return RenderObjectDef {
@@ -186,9 +186,11 @@ void draw(RazorsV2& self, double ms)
         auto const blendFragments = FragmentOperationsDef {
                 FragmentOperationsDef::BLEND_PREMULTIPLIED_ALPHA, {}
         };
+#if 0
         auto const clearAndBlendFragments = FragmentOperationsDef {
                 FragmentOperationsDef::CLEAR | FragmentOperationsDef::BLEND_PREMULTIPLIED_ALPHA, {}
         };
+#endif
 
         auto const seedProgram = ProgramDef {
                 .vertexShader = vertexShader(seedVS),
@@ -203,7 +205,7 @@ void draw(RazorsV2& self, double ms)
         beginFrame(*output);
 
         previousFrame = drawManyIntoTexture
-                        (*output, previousFrame, clearAndBlendFragments,
+                        (*output, previousFrame, blendFragments,
         projectorProgram, {
                 projector(resultFrame, 0.990f + 0.010f * sin(TAU * ms / 5000.0), resolution),
         });
@@ -216,6 +218,73 @@ void draw(RazorsV2& self, double ms)
                       (*output, resultFrame, clearFragments, projectorProgram,
         { projector(previousFrame, 1.004f, resolution) });
 
-        drawMany(*output, clearFragments, projectorProgram,
-        { projector(resultFrame, 1.0f, resolution) });
+        auto object = [resolution](TextureDef const& texture, matrix4 transform,
+        vector4 color, GeometryDef const& geometry) {
+                return RenderObjectDef {
+                        .inputs = ProgramInputs {
+                                {
+                                        { "position", 2 },
+                                        { "texcoord", 2 },
+                                },
+                                {
+                                        {
+                                                "tex", texture
+                                        }
+                                },
+                                {
+                                        ProgramInputs::FloatInput { .name = "g_color", .values = { color, color + 4 } },
+                                        ProgramInputs::FloatInput { .name = "transform", .values = { transform, transform + 16 }, .last_row = 3 },
+                                        ProgramInputs::FloatInput { .name = "iResolution", .values = { (float) resolution.first, (float) resolution.second, 0.0 } },
+                                },
+                                {},
+
+                        },
+                        .geometry = geometry
+                };
+        };
+
+        auto rQuad = [quad](float const cut) {
+                auto border = clamp_f(1.0f - cut, 0.0f, 1.0f);
+                auto hborder = border / 2.0f;
+                return quad( {
+                        -1.0f + border,
+                        -1.0f + border,
+                        2.0f - 2.0f*border,
+                        2.0f - 2.0f*border
+                },
+                { hborder, hborder, 1.0f - 2.0f*hborder, 1.0f - 2.0f*hborder });
+        };
+
+        {
+                auto phase = ms / 1000.0;
+                auto aa = 0.10;
+
+                vector4 color;
+                vector4_copy(color, &transparentWhite(0.98f).front());
+
+                {
+                        matrix4 m;
+                        matrix4_identity(m);
+                        movev(m, 0.001*cos(phase/50.0));
+                        scale1(m, 1.
+                               + 0.001*sin(phase*TAU + TAU/6.0)
+                               + 0.01*aa);
+                        rotx(m, 1.0 / 96.0 * (1. + 0.1*sin(phase/7.0 * TAU/3.)));
+                        rotz(m, 1.0 / 4.0 * sin(phase * TAU / 33.33));
+
+                        previousFrame = drawManyIntoTexture
+                                        (*output, previousFrame,
+                                         clearFragments, projectorProgram,
+                        { object(resultFrame, m, color, rQuad(0.980f)) });
+                }
+
+                {
+                        matrix4 m;
+                        matrix4_identity(m);
+                        movev(m, 0.001*cos(ms/1000.0/50.0));
+
+                        drawMany(*output, clearFragments, projectorProgram,
+                        { object(resultFrame, m, color, rQuad(1.0f)) });
+                }
+        }
 }
